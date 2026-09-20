@@ -65,6 +65,8 @@ export type SiteContent = {
 
 /** Fill every block template with the generated content. */
 export function elementsFor(content: SiteContent) {
+  // Asked to price a free project, the model answers `"tiers": "免费"` — a string where the schema asked for an array, and valid JSON, so neither retry attempt fires. `(content.tiers ?? []).slice(0, 1).map(...)` was the only eager array operation in this function, so that string threw `.map is not a function` inside the generator and destroyed a page that had no pricing block in it at all. Both pricing variants now read the same guarded value, so a wrong-typed field costs its own block and nothing else. Every other array here is handed to the renderer untouched and only reaches `.map` if its block was chosen and passed isReady.
+  const tiers = Array.isArray(content.tiers) ? content.tiers : [];
   return {
     page: { type: "Page", props: { theme: "auto" } },
     nav_standard: {
@@ -144,12 +146,12 @@ export function elementsFor(content: SiteContent) {
       props: {
         cta: content.pricingCta,
         title: content.pricingTitle,
-        tiers: (content.tiers ?? []).slice(0, 1).map((t) => ({ ...t, highlighted: true })),
+        tiers: tiers.slice(0, 1).map((t) => ({ ...t, highlighted: true })),
       },
     },
     pricing_multi: {
       type: "Pricing",
-      props: { title: content.pricingTitle, tiers: content.tiers, cta: content.pricingCta },
+      props: { title: content.pricingTitle, tiers, cta: content.pricingCta },
     },
     testimonials: {
       type: "Testimonials",

@@ -6,7 +6,7 @@ Get it running first, so you know the environment is sound:
 
 ```bash
 npm install
-npm test        # 250 of them, ~1.5s, no network
+npm test        # 347 of them, ~1.5s, no network
 npm run dev     # demo mode; no keys needed
 ```
 

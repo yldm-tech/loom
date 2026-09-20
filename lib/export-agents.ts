@@ -67,6 +67,18 @@ function sourceTable(shown: Shown[]): string {
     .join("\n");
 }
 
+/**
+ * The element the theme tokens are actually declared on.
+ *
+ * Every exporter is handed `previewRef.current?.firstElementChild`, which is the unstyled `<div data-loom="site">` wrapper; `themeVars(...)` is applied one level further down, on the registry's Page div. The brief used to call the export root the themed element, which is off by one — an agent that believes it appends its new section as a sibling of the themed div, where every `var(--accent)` resolves to nothing and the block renders unthemed, which is the exact two-palettes-on-one-page failure this section exists to prevent. So the element is found by the declaration it carries rather than assumed, reading the property off the style object so a `var(--bg)` *reference* elsewhere cannot be mistaken for the declaration. If the root does carry them, the root is the answer and the prose says so.
+ */
+function themedElement(root: Element, marker: string): Element {
+  const declares = (element: Element) =>
+    (element as HTMLElement).style?.getPropertyValue(marker) !== "";
+  if (declares(root)) return root;
+  return Array.from(root.querySelectorAll("[style]")).find(declares) ?? root;
+}
+
 function tokenBlock(theme: string): string {
   const declarations = Object.entries(themeVars(theme)).map(([name, value]) => `${name}: ${value};`);
   return ["```css", ...declarations, "```"].join("\n");
@@ -91,7 +103,17 @@ export function buildAgentsMd(root: Element, prompt: string, theme: string, slot
   const uncovered = present.filter((slot) => sourcesFor(slot as SlotKey).length === 0);
   // themeVars falls back to forest for a name it does not know, so the prose names the theme actually printed. The HTML file is named after the string the export was given, whatever it was.
   const printed = theme in THEMES ? theme : "forest";
-  const wrapper = root.tagName.toLowerCase();
+  const tokens = themeVars(printed);
+  // The marker comes off the token map rather than being spelled out again, so a rename in lib/themes.ts cannot leave this looking for a property nothing declares.
+  const themed = themedElement(root, Object.keys(tokens)[0]!);
+  const named = (element: Element) => {
+    const className = element.getAttribute("class");
+    return code(`<${element.tagName.toLowerCase()}${className ? ` class="${className}"` : ""}>`);
+  };
+  const themedPlace =
+    themed === root
+      ? `the outermost ${named(root)}`
+      : `${named(themed)}, which sits one level inside the outermost ${named(root)} rather than being it`;
 
   const licences = shown
     .filter(({ source }) => source.name !== "Transitions")
@@ -111,7 +133,7 @@ export function buildAgentsMd(root: Element, prompt: string, theme: string, slot
     ].join("\n"),
 
     `## The theme contract`,
-    `Nothing in the markup names a colour, a radius or a typeface directly — every one of them reads a CSS custom property. These seventeen are the ${code(printed)} theme, set as an inline style on the outermost ${code(`<${wrapper}>`)}, and every block on the page sits inside that element.`,
+    `Nothing in the markup names a colour, a radius or a typeface directly — every one of them reads a CSS custom property. These ${Object.keys(tokens).length} are the ${code(printed)} theme, set as an inline style on ${themedPlace}, and every block on the page sits inside that element. Custom properties inherit from the element that declares them, so a block added as its sibling rather than inside it gets none of them.`,
     tokenBlock(printed),
     `A component pasted in from anywhere else arrives with a palette of its own: hex literals, or another design system's token names such as ${code("text-foreground")} that resolve to nothing here. It will ignore the theme until it is rewritten onto the variables above. That rewrite is the step this workflow skips most often, and skipping it puts two colour schemes on one page.`,
 

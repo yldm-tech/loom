@@ -1,7 +1,16 @@
-import { SLOTS, type SlotKey } from "@/lib/plan";
+import { ARCHETYPES, SLOTS, type ArchetypeKey, type SlotKey } from "@/lib/plan";
 import { THEME_CRITERIA } from "@/lib/themes";
 
 type Answer = { choice: string; confidence?: number; noul?: number };
+
+/**
+ * How long a user-typed request may be, enforced by both API routes before the string reaches any of this.
+ *
+ * It lives here because this is where the amplification happens: the request is copied into every question of the fan-out, and lib/compose.ts copies it into seventeen. A 1 MB prompt therefore became a 17 MB upstream body — measured, not estimated — so one unauthenticated POST could drive a keyed deployment to gigabytes of RSS and about 24x the token spend the caller paid for.
+ *
+ * 2000 characters is roughly 22x the longest example prompt any locale ships (91 characters, pt.json) and still several paragraphs of business description, so nothing a person actually types is truncated; over the cap the routes answer 400 rather than silently cutting the request in half and generating a page for a sentence the user did not finish.
+ */
+export const MAX_REQUEST_CHARS = 2000;
 
 const ACTIONS: Record<string, string> = {
   remove:
@@ -44,10 +53,14 @@ export async function editPlan(
   currentTheme: string,
   signal: AbortSignal,
   currentVariants: Partial<Record<SlotKey, string>> = {},
+  archetype?: ArchetypeKey,
 ) {
   const absent = (Object.keys(SLOTS) as SlotKey[]).filter(
     (slot) => !present.includes(slot),
   );
+  // A block the archetype declared required is not on the menu. lib/compose.ts seeds the page from ARCHETYPES[archetype].required and only ever asks about the optional ones, so "a landing page always has a hero" is structural at generation time — but the edit path used to offer every present block for removal, which is the one route to an unrecoverable page: drop `hero` from a `minimal` page and the spec root is left with no children, every export writes an empty document, and add is not implemented client-side. Callers that send no archetype keep the old behaviour, because there is nothing to derive the rule from.
+  const structural: readonly string[] = archetype ? ARCHETYPES[archetype].required : [];
+  const removable = present.filter((slot) => !structural.includes(slot));
 
   const questions: Record<string, unknown> = {
     action: {
@@ -57,7 +70,7 @@ export async function editPlan(
     },
   };
 
-  if (present.length > 0) {
+  if (removable.length > 0) {
     questions.remove_target = {
       type: "choice",
       instructions: {
@@ -65,7 +78,7 @@ export async function editPlan(
         request,
         note: "只在用户确实要删东西时才会用到这个答案",
       },
-      criteria: Object.fromEntries(present.map((slot) => [slot, SLOT_LABELS[slot]])),
+      criteria: Object.fromEntries(removable.map((slot) => [slot, SLOT_LABELS[slot]])),
     };
   }
   if (absent.length > 0) {
@@ -187,8 +200,16 @@ export async function editPlan(
   });
 
   let target: { choice?: string; confidence: number | null } | null = null;
-  if (action === "remove") target = targetOf("remove_target");
-  else if (action === "add") target = targetOf("add_target");
+  if (action === "remove") {
+    // No question went out because everything on the page is structural, so say that instead of letting the missing answer read as a low-confidence judgement Jev never made.
+    if (removable.length === 0) {
+      result.action = "unclear";
+      result.targetConfidence = null;
+      result.blockedBy = "页面上剩下的区块都是这类页面的必需项，删不掉";
+      return result;
+    }
+    target = targetOf("remove_target");
+  } else if (action === "add") target = targetOf("add_target");
   else if (action === "theme") target = targetOf("theme_target");
   else if (action === "restyle") {
     const slotPick = targetOf("restyle_target");

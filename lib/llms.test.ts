@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { ARCHETYPES, SLOTS, SLOT_ORDER } from "@/lib/plan";
 import { COMPONENT_SOURCES } from "@/lib/sources";
 import { THEMES, themeVars } from "@/lib/themes";
+import { TOOLS } from "@/lib/mcp";
 import { buildLlmsTxt, EXPORTS } from "./llms";
 
 /**
@@ -108,6 +109,17 @@ describe("buildLlmsTxt", () => {
         expect(doc, `${key} endpoint ${endpoint} is missing`).toContain(endpoint);
       }
     }
+  });
+
+  it("names loom's own MCP server and every tool on it, or the one document an agent fetches unattended hides the typed surface and the agent keeps re-parsing this prose for facts a tool would hand it", () => {
+    // The first version of this file named beUI's MCP endpoint and not loom's, in the same commit that shipped lib/mcp.ts.
+    const prose = lines.slice(1, firstH2).join("\n");
+    expect(prose, "the MCP server is not named in the prose block").toContain("npm run mcp");
+    for (const tool of TOOLS) {
+      expect(prose, `MCP tool ${tool.name} is missing`).toContain(`\`${tool.name}\``);
+    }
+    // It has no url, so it can only live in the prose block: the sections below take link items only.
+    expect(sectionLines.join("\n")).not.toContain("npm run mcp");
   });
 
   it("repeats the finding that no source ships a page section, the one claim in lib/sources.ts that an agent acting on this file must not be left to contradict", () => {

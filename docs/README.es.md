@@ -289,7 +289,7 @@ El origen se lee de la petición y no de una constante de compilación, porque e
 
 El mismo texto generado bajo los seis temas. Cambiar de tema es modificar una sola prop en el cliente: sin llamada al modelo, sin regeneración.
 
-Seis temas, cada uno un conjunto completo de tokens de diseño. `app/registry.tsx` **no contiene ni un solo valor hexadecimal**: todo se lee de variables CSS.
+Seis temas, cada uno un conjunto completo de tokens de diseño. Todos los colores de `app/registry.tsx` se leen de variables CSS, con **una sola excepción** que un test mantiene en una: los tres puntos del semáforo de macOS en la captura simulada del hero partido, que dibujan el marco de ventana de otro sistema operativo y no la paleta de loom.
 
 | Tema | Carácter | Encaja con |
 |---|---|---|
@@ -332,7 +332,7 @@ La auditoría necesita el servidor en marcha y `npx playwright install chromium`
 
 
 ```bash
-npm test          # 250, unos 1,5 s, sin red
+npm test          # 347, unos 1,5 s, sin red
 ```
 
 Cubren **las tres reglas recuperadas del modelo**: el número de argumentos decide rejilla o lista, el número de planes decide tarjeta única o comparativa, y la existencia de una captura de interfaz decide la composición de la portada. Si alguna se desvía, la decisión vuelve en silencio a un modelo que no puede tomarla, así que son las que no deben moverse.
@@ -381,7 +381,7 @@ fixtures/
   en|zh|ja|ko.jsonl    ejecuciones reales grabadas, para el modo demo
 app/
   page.tsx             el editor, consumo del stream, cambio de tema y variante en cliente
-  registry.tsx         el aspecto de cada bloque, todo mediante variables CSS
+  registry.tsx         el aspecto de cada bloque, mediante variables CSS
   llms.txt/            la ruta /llms.txt
   api/generate         generación
   api/edit             ediciones

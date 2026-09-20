@@ -293,7 +293,7 @@ The origin comes from the request rather than from a build-time constant, since 
 The same generated copy under all six themes. Switching is a single client-side prop change — no model call, no regeneration.
 
 
-Six themes, each a complete set of design tokens. `app/registry.tsx` contains **no hex values at all** — everything reads from CSS variables:
+Six themes, each a complete set of design tokens. Every colour in `app/registry.tsx` reads from a CSS variable, with **exactly one exception**, which a test holds at one: the three macOS traffic-light dots in the mocked screenshot inside the split hero, which draw another operating system's window chrome rather than loom's palette:
 
 | Theme | Character | Suits |
 |---|---|---|
@@ -336,7 +336,7 @@ The audit needs a running server and `npx playwright install chromium`, so it st
 
 
 ```bash
-npm test          # 250 of them, ~1.5s, no network
+npm test          # 347 of them, ~1.5s, no network
 ```
 
 They cover **the three rules taken back from the model** — selling-point count decides grid vs list, tier count decides single vs comparison, whether there is a UI screenshot decides the hero layout. If any of these drift, the decision quietly goes back to a model that cannot make it, so they are the ones that must not move.
@@ -382,7 +382,7 @@ locales/
   en|zh|ja|ko|es|fr|de|pt.json   UI translations, zh is the reference
 app/
   page.tsx             the editor, stream consumption, client-side retheme/restyle
-  registry.tsx         what blocks look like, all via CSS variables
+  registry.tsx         what blocks look like, via CSS variables
   llms.txt/            the /llms.txt route
   api/generate         generation
   api/edit             edits

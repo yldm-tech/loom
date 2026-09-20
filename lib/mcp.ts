@@ -13,6 +13,8 @@ import { THEMES, themeVars } from "./themes";
  *
  * The one fact this module adds is which theme a fallback landed on. `themeVars()` answers an unknown name with forest's palette, which is right for rendering — a page still gets colours — and wrong to hand an agent unlabelled, because it would paste a green button in believing it had asked for terminal. So the reply names the theme actually returned, and a test below checks that FALLBACK_THEME is still the one themeVars picks.
  *
+ * Every lookup keyed by a string the client chose goes through `Object.hasOwn`, never `in` and never a bare index. The two that did not cost a server: `theme_tokens` with `{"theme":"toString"}` passed `"toString" in THEMES`, so the fallback was skipped, `themeVars("toString")` destructured `tokens` off `Object.prototype.toString` and threw `Cannot read properties of undefined (reading 'bg')` out of handle() — initialize was answered, the two requests behind it never were, and the process was gone. `sources_for_block` with `{"block":"__proto__"}` failed more quietly through the same hole: `known: true` and a suggestion to go read loom's rendering of a block that does not exist, from the tool whose description promises "never a guess". A JSON object off a pipe inherits from Object.prototype, so "toString", "constructor", "valueOf", "hasOwnProperty" and "isPrototypeOf" are all live keys in any table written as an object literal, and the `enum` in an inputSchema constrains a well-behaved client only — nothing on the wire enforces it.
+ *
  * This module is pure and synchronous: no stdio, no fetch, no process. scripts/mcp.mjs is the pump and holds nothing else.
  */
 
@@ -125,7 +127,8 @@ export const TOOLS: Tool[] = [
     run: (args) => {
       const block = requireString(args, "block");
       if (block === null) return badArgument(`This tool needs a \`block\` name. loom's blocks are: ${SLOT_ORDER.join(", ")}.`);
-      if (!(block in SLOTS)) {
+      // hasOwn rather than `in`: "__proto__" and "toString" are in SLOTS by inheritance, and this branch is the only thing standing between them and a confident answer about a block loom does not have.
+      if (!Object.hasOwn(SLOTS, block)) {
         return ok({
           block,
           known: false,
@@ -186,7 +189,8 @@ export const TOOLS: Tool[] = [
     run: (args) => {
       const requested = requireString(args, "theme");
       if (requested === null) return badArgument(`This tool needs a \`theme\` name. loom's themes are: ${Object.keys(THEMES).join(", ")}.`);
-      const matched = requested in THEMES;
+      // hasOwn rather than `in`: `themeVars` takes whatever this decides is a real theme, and an inherited member reaches it as a function rather than a palette.
+      const matched = Object.hasOwn(THEMES, requested);
       const theme = matched ? requested : FALLBACK_THEME;
       return ok({
         requested,
@@ -249,18 +253,21 @@ function callTool(id: string | number, params: unknown) {
  *
  * The null is not an oversight path: JSON-RPC calls an id-less message a notification and forbids a reply, and `notifications/initialized` is the one every client sends immediately after the handshake. Writing anything back for it puts a response on the stream that no client is waiting for, and from there every later id lines up against the wrong request.
  *
+ * The id is read before anything else is judged, and every error carries it when the message had a usable one. A reply with `id: null` is correlated to nothing: the client's pending promise for id 9 stays pending and what the user sees is a timeout, not "your method field was not a string". The spec permits null for an Invalid Request; it does not make it useful. The ordering is load-bearing — the method check stays ahead of the notification check, or a notification with a broken method starts getting an unsolicited reply.
+ *
  * Nothing in here throws. A malformed message arrives from the other side of a pipe, and the cost of an exception is not a bad reply but a dead server: the pump exits, the client sees the process go, and the session ends mid-task.
  */
-export function handle(request: unknown): object | null {
+function single(request: unknown): object | null {
   if (!isObject(request)) {
-    return failure(null, INVALID_REQUEST, "A JSON-RPC request must be a single JSON object; batches and bare values are not supported.");
+    return failure(null, INVALID_REQUEST, "A JSON-RPC request must be a single JSON object. A batch is an array of them, not an array of arrays.");
   }
+  const declared = request.id;
+  const id = typeof declared === "string" || typeof declared === "number" ? declared : null;
   if (typeof request.method !== "string") {
-    return failure(null, INVALID_REQUEST, "A JSON-RPC request must carry a string `method`.");
+    return failure(id, INVALID_REQUEST, "A JSON-RPC request must carry a string `method`.");
   }
   if (!("id" in request)) return null;
-  const id = request.id;
-  if (typeof id !== "string" && typeof id !== "number") {
+  if (id === null) {
     return failure(null, INVALID_REQUEST, "A JSON-RPC `id` must be a string or a number.");
   }
 
@@ -274,4 +281,22 @@ export function handle(request: unknown): object | null {
     default:
       return failure(id, METHOD_NOT_FOUND, `Unknown method: ${request.method}. This server implements initialize, tools/list and tools/call.`);
   }
+}
+
+/**
+ * The same, plus the array form: a batch in, an array of replies out, or null when every message in it was a notification.
+ *
+ * A batch was answered with one id-less error until this existed, and that is a hang rather than a refusal — the client gets nothing it can match to id 1 or id 2 and waits for its own timeout on both. MCP 2025-03-26 requires a server to receive batches and SUPPORTED_PROTOCOL_VERSIONS advertises that revision, so a client is entitled to send one. Dropping the revision instead would be the worse trade: every 2025-03-26-only client would disconnect at the handshake, which is certain and common, to avoid a batch, which is rare — no shipping client batches by default.
+ *
+ * An empty array is not a batch of nothing, it is an Invalid Request by name in the spec, so it gets the single error object the spec asks for rather than silence.
+ */
+export function handle(request: unknown): object | object[] | null {
+  if (Array.isArray(request)) {
+    if (request.length === 0) {
+      return failure(null, INVALID_REQUEST, "A JSON-RPC batch must be an array carrying at least one request.");
+    }
+    const replies = request.map(single).filter((reply): reply is object => reply !== null);
+    return replies.length > 0 ? replies : null;
+  }
+  return single(request);
 }

@@ -157,6 +157,16 @@ describe("the tools' answers", () => {
     expect(payload.message).toContain("hero");
   });
 
+  it("treats a block name inherited from Object.prototype as a name loom does not have, so an agent is never told to go improve a block loom cannot render", () => {
+    // `"__proto__" in SLOTS` is true, and sourcesFor then returns [] for it perfectly calmly — which is what made the wrong answer look like a right one: known: true, count: 0, and a message pointing at loom's own rendering of a block that does not exist.
+    for (const block of ["__proto__", "toString", "constructor", "hasOwnProperty"]) {
+      const payload = structured("sources_for_block", { block });
+      expect(payload.known, `${block} was reported as a real loom block`).toBe(false);
+      expect(payload.sources).toEqual([]);
+      expect(payload.message, `${block} was answered without saying loom has no such block`).toContain(block);
+    }
+  });
+
   it("says so when a real block has no source covering it, instead of returning an empty list that reads like a failed lookup", () => {
     const uncovered = SLOT_ORDER.filter((block) => sourcesFor(block).length === 0);
     expect(uncovered.length, "every block is covered now, so this test no longer guards anything: check lib/sources.ts").toBeGreaterThan(0);
@@ -213,6 +223,17 @@ describe("the tools' answers", () => {
     expect(payload.tokens).toEqual(themeVars(FALLBACK_THEME));
   });
 
+  it("answers a theme name inherited from Object.prototype with the labelled fallback instead of throwing, because an exception here does not cost a reply, it costs the session", () => {
+    // This is the crash that was shipping: `"toString" in THEMES` is true, so the fallback was skipped and themeVars destructured `tokens` off Object.prototype.toString. initialize was answered, the two requests behind it never were, and the client watched the process exit.
+    for (const theme of ["toString", "constructor", "valueOf", "__proto__", "isPrototypeOf"]) {
+      const payload = structured("theme_tokens", { theme });
+      expect(payload.matched, `${theme} was matched to a theme loom does not have`).toBe(false);
+      expect(payload.theme).toBe(FALLBACK_THEME);
+      expect(payload.tokens, `${theme} was answered with something other than the fallback palette`).toEqual(themeVars(FALLBACK_THEME));
+      expect(payload.message).toContain(theme);
+    }
+  });
+
   it("still names the theme themeVars really falls back to, so changing that fallback in lib/themes.ts cannot leave this server mislabelling it", () => {
     expect(themeVars("no-such-theme"), `themeVars no longer falls back to ${FALLBACK_THEME}`).toEqual(themeVars(FALLBACK_THEME));
   });
@@ -234,18 +255,20 @@ describe("messages that arrive broken", () => {
   });
 
   it("answers rather than throws for anything that is not a well-formed request, since the sender is on the other side of a pipe and cannot be trusted to be one", () => {
+    // Arrays other than the empty one live in the batch test below, since a batch is answered with an array of replies rather than the single envelope this loop asserts.
     const malformed: unknown[] = [
       42,
       "not a message",
       null,
       [],
-      [{ jsonrpc: "2.0", id: 1, method: "tools/list" }],
       { jsonrpc: "2.0", id: 1 },
       { jsonrpc: "2.0", id: 1, method: 5 },
       { jsonrpc: "2.0", id: {}, method: "tools/list" },
       { jsonrpc: "2.0", id: 1, method: "tools/call" },
       { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "list_blocks", arguments: "nope" } },
       { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "theme_tokens", arguments: { theme: 12 } } },
+      { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "theme_tokens", arguments: { theme: "toString" } } },
+      { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "sources_for_block", arguments: { block: "constructor" } } },
     ];
 
     for (const request of malformed) {
@@ -255,6 +278,43 @@ describe("messages that arrive broken", () => {
       expect(response.jsonrpc, `${JSON.stringify(request)} was answered without the protocol marker`).toBe("2.0");
       expect(response.result !== undefined || typeof response.error?.code === "number").toBe(true);
     }
+  });
+
+  it("carries the request's id on an error whenever the message had a readable one, because a reply with id null settles no pending request and reaches the user as a timeout rather than as the reason", () => {
+    for (const id of [9, "abc"]) {
+      // A broken `method` is the case where the id is plainly visible and was being thrown away anyway.
+      expect((ask({ jsonrpc: "2.0", id, method: 5 }) as Response).id, `id ${id} was dropped from the reply to a non-string method`).toBe(id);
+      expect((ask({ jsonrpc: "2.0", id }) as Response).id, `id ${id} was dropped from the reply to a message with no method`).toBe(id);
+    }
+    // An id the protocol does not allow is still no id: there is nothing to echo, and null is the spec's answer.
+    expect((ask({ jsonrpc: "2.0", id: {}, method: "tools/list" }) as Response).id).toBeNull();
+  });
+
+  it("answers every request in a batch with its own reply, since a batch answered by one id-less error leaves every id in it pending until the client gives up on its own", () => {
+    // SUPPORTED_PROTOCOL_VERSIONS advertises 2025-03-26, the revision that requires a server to receive batches, so a client is entitled to send one.
+    expect(SUPPORTED_PROTOCOL_VERSIONS, "2025-03-26 is gone, and with it the reason this server must accept batches").toContain("2025-03-26");
+
+    const replies = handle([
+      { jsonrpc: "2.0", id: 1, method: "tools/list" },
+      { jsonrpc: "2.0", method: "notifications/initialized" },
+      { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "list_themes" } },
+      { jsonrpc: "2.0", id: 3, method: "resources/list" },
+    ]) as Response[];
+
+    expect(Array.isArray(replies), "a batch was not answered with an array of replies").toBe(true);
+    // The notification is the one message that must not appear: it has no id, so a reply to it is a response the client can never claim.
+    expect(replies.map((reply) => reply.id)).toEqual([1, 2, 3]);
+    expect(replies[0]!.result!.tools.length).toBe(TOOLS.length);
+    expect(replies[1]!.result!.structuredContent.themes.length).toBe(Object.keys(THEMES).length);
+    expect(replies[2]!.error!.code).toBe(-32601);
+  });
+
+  it("returns nothing for a batch of pure notifications and an error for an empty array, keeping the one case the spec calls Invalid Request distinct from the one it forbids answering", () => {
+    expect(handle([{ jsonrpc: "2.0", method: "notifications/initialized" }, { jsonrpc: "2.0", method: "notifications/cancelled" }])).toBeNull();
+
+    const empty = handle([]) as Response;
+    expect(empty.error!.code).toBe(-32600);
+    expect(Array.isArray(empty), "an empty batch was answered with an array, which is the one shape the spec rules out here").toBe(false);
   });
 
   it("treats a message with no id as a notification even when the rest of it is nonsense, because answering one would put an unclaimed response on the stream", () => {

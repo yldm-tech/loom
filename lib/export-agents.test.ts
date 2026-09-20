@@ -7,17 +7,25 @@ import { buildAgentsMd } from "./export-agents";
 /**
  * The brief is only worth its lines if every line is load-bearing, so these check the four facts an agent acts on: which file it may edit, which variables it must write against, which blocks it has, and which sources are real. A wrong value here is worse than no file at all — it sends the agent off confidently in the wrong direction.
  */
-function page(): Element {
+/**
+ * The two-level root the app actually exports.
+ *
+ * The first fixture here was a single themed `<div class="antialiased">`, which is a DOM shape the app never renders: every exporter is handed `previewRef.current?.firstElementChild`, the unstyled `<div data-loom="site">` wrapper, and `themeVars(...)` lands one level further down on the registry's Page div. A fixture that collapses the two makes the brief's claim about where the tokens live true by accident, which is how it stayed wrong. The style is set through the DOM rather than written into the markup because the token values are lib/themes.ts's to own, and because the font stacks contain double quotes that an inline `style="…"` attribute would swallow.
+ */
+function page(theme = "forest"): Element {
   const host = document.createElement("div");
-  host.innerHTML = `<div class="antialiased"><section>hero</section></div>`;
-  return host.firstElementChild!;
+  host.innerHTML = `<div data-loom="site"><div class="antialiased"><section>hero</section></div></div>`;
+  const root = host.firstElementChild!;
+  const themed = root.firstElementChild as HTMLElement;
+  for (const [name, value] of Object.entries(themeVars(theme))) themed.style.setProperty(name, value);
+  return root;
 }
 
 /** `team` is in here deliberately: it is the one slot no source in the table covers. */
 const SLOTS = ["nav", "hero", "features", "team", "faq", "footer"];
 
 const build = (theme = "forest", slots = SLOTS) =>
-  buildAgentsMd(page(), "我开了家咖啡店", theme, slots);
+  buildAgentsMd(page(theme), "我开了家咖啡店", theme, slots);
 
 /** Table rows only, with the header and the separator dropped. */
 function rows(markdown: string): string[][] {
@@ -71,6 +79,37 @@ describe("buildAgentsMd", () => {
     for (const [name, value] of Object.entries(vars)) {
       expect(markdown, `${name} is missing or wrong`).toContain(`${name}: ${value};`);
     }
+    // The prose counts them out loud, so a token added to lib/themes.ts without the sentence following it would have the brief telling the agent to look for one fewer than it prints.
+    expect(markdown).toContain(`These ${Object.keys(vars).length} are the`);
+  });
+
+  it("names the element that declares the tokens rather than the export root, so a block pasted where the brief points inherits the theme instead of nothing", () => {
+    // The brief used to call the export root the themed element. It is one level up from the truth, and an agent that believes it appends its section as a sibling of the themed div, outside the scope every `var(--accent)` resolves in.
+    const root = page();
+    const themed = root.firstElementChild as HTMLElement;
+    expect(themed.style.getPropertyValue("--bg"), "fixture stopped modelling the app's two-level root").not.toBe("");
+    expect((root as HTMLElement).style.getPropertyValue("--bg"), "fixture root declares the tokens, so this test would pass on the old bug").toBe("");
+
+    const line = buildAgentsMd(root, "我开了家咖啡店", "forest", SLOTS)
+      .split("\n")
+      .find((l) => l.includes("set as an inline style on"))!;
+    const target = line.match(/set as an inline style on `(<[^`]+>)`/)?.[1];
+    expect(target).toBe(`<${themed.tagName.toLowerCase()} class="${themed.getAttribute("class")}">`);
+    expect(line).toContain("one level inside the outermost");
+  });
+
+  it("tells a declaration apart from a var() reference, so an element that merely reads a token cannot be mistaken for the one that sets it", () => {
+    // Almost every block in app/registry.tsx carries an inline `color: var(--muted)` or similar. Picking the first element with a style attribute would work only for as long as the themed div happens to come first in document order, and would send the brief — and the agent — at whichever block moved ahead of it.
+    const host = document.createElement("div");
+    host.innerHTML = `<div data-loom="site"><span style="color: var(--bg)">reads it</span><div class="antialiased"><section>hero</section></div></div>`;
+    const root = host.firstElementChild!;
+    const themed = root.lastElementChild as HTMLElement;
+    for (const [name, value] of Object.entries(themeVars("forest"))) themed.style.setProperty(name, value);
+
+    const line = buildAgentsMd(root, "我开了家咖啡店", "forest", SLOTS)
+      .split("\n")
+      .find((l) => l.includes("set as an inline style on"))!;
+    expect(line.match(/set as an inline style on `(<[^`]+>)`/)?.[1]).toBe(`<div class="antialiased">`);
   });
 
   it("follows the theme it was given, so a retheme cannot leave the brief quoting the old palette", () => {

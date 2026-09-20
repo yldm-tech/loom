@@ -186,6 +186,8 @@ Três formatos, todos derivados **do mesmo resultado renderizado**. Não existe 
 
 Um único componente plano, sem dependência além do React. Cores, fontes e raios ficam todos em um único objeto de estilo no elemento mais externo, então trocar de tema é editar um lugar só. Os nomes de classe do Tailwind são preservados.
 
+Tudo o que a página desenha com CSS em vez de marcação precisa ir junto como texto, senão desaparece de um arquivo que não leva folha de estilo. As aspas passaram em algum momento para `content: open-quote` e a exportação perdeu todas elas, guardando apenas o nome de classe que apontava para uma regra que não vai junto. Agora são resolvidas e escritas no JSX, coladas ao texto: o JSX transforma em espaço a quebra de linha entre dois trechos de texto, e `« assim »` está errado em todo idioma que não peça um.
+
 A divisão em componentes foi deixada de fora de propósito: um arquivo gerado que dá para ler de cima a baixo e recortar você mesmo vale mais do que uma estrutura que precisa ser decifrada antes.
 
 A verificação é uma execução real de `tsc --noEmit --strict --jsx react-jsx`, **julgada pelo código de saída**. Foi assim que se descobriu que a primeira versão não compilava: propriedades customizadas de CSS não são válidas em `React.CSSProperties`. Agora sai com um `as CSSProperties`.

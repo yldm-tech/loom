@@ -187,6 +187,8 @@ Trois formats, tous issus **du même rendu**. Il n'existe pas de seconde copie d
 
 Un seul composant plat, sans autre dépendance que React. Couleurs, polices et rayons vivent tous dans un unique objet de style sur l'élément le plus extérieur : changer de thème revient à éditer un seul endroit. Les classes Tailwind sont conservées.
 
+Tout ce que la page dessine en CSS plutôt qu'en balisage doit partir avec elle sous forme de texte, sinon cela disparaît d'un fichier qui n'embarque aucune feuille de style. Les guillemets sont passés à un moment dans `content: open-quote` et l'export les a tous perdus, ne gardant que le nom de classe qui désignait une règle absente du fichier. Ils sont maintenant résolus et écrits dans le JSX, collés au texte : JSX transforme en espace le saut de ligne entre deux morceaux de texte, et `「 comme ceci 」` est faux dans toute langue qui n'en demande pas.
+
 Le découpage en composants est volontairement omis : un fichier généré qu'on peut lire de haut en bas et découper soi-même vaut mieux qu'une structure qu'il faut d'abord décrypter.
 
 La vérification est une véritable exécution de `tsc --noEmit --strict --jsx react-jsx`, **jugée sur le code de sortie**. C'est ainsi qu'on a découvert que la première version ne compilait pas : les propriétés personnalisées CSS ne sont pas valides dans `React.CSSProperties`. Le fichier émet désormais un `as CSSProperties`.

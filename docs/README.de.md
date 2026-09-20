@@ -187,6 +187,8 @@ Drei Formate, alle aus **demselben gerenderten Ergebnis**. Es gibt keine zweite 
 
 Eine einzige flache Komponente, außer React ohne Abhängigkeiten. Farben, Schriften und Radien stehen alle in einem einzigen Style-Objekt am äußersten Element — ein Themenwechsel ist also eine Änderung an genau einer Stelle. Tailwind-Klassennamen bleiben erhalten.
 
+Alles, was die Seite mit CSS statt mit Markup zeichnet, muss als Text mitkommen, sonst verschwindet es aus einer Datei, die kein Stylesheet mitbringt. Die Anführungszeichen wanderten irgendwann in `content: open-quote`, und der Export verlor sie alle — übrig blieb nur der Klassenname, der auf eine Regel zeigte, die nicht mitgeliefert wird. Sie werden jetzt aufgelöst und in das JSX geschrieben, direkt am Text: JSX macht aus dem Zeilenumbruch zwischen zwei Textstücken ein Leerzeichen, und `« so »` ist in jeder Sprache falsch, die keines verlangt.
+
 Auf eine Aufteilung in Komponenten wird bewusst verzichtet: Eine generierte Datei, die man von oben nach unten lesen und selbst zerlegen kann, ist mehr wert als eine Struktur, die man erst rückwärts verstehen muss.
 
 Die Prüfung ist ein echter Lauf von `tsc --noEmit --strict --jsx react-jsx`, **bewertet nach dem Exit-Code**. So kam heraus, dass die erste Fassung nicht kompilierte: CSS-Custom-Properties sind in `React.CSSProperties` nicht zulässig. Jetzt wird ein `as CSSProperties` ausgegeben.

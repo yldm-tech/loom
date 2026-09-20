@@ -189,6 +189,8 @@ Three formats, all derived from **the same rendered result**. There is no second
 
 One flat component, no dependency beyond React. Colours, fonts and radii all live in a single style object on the outermost element, so retheming means editing one place. Tailwind class names are preserved.
 
+Anything the page draws with CSS rather than markup has to come along as text, or it vanishes from a file that ships no stylesheet. Quotation marks moved into `content: open-quote` at one point and the export lost every one of them, keeping only the class name that pointed at a rule which does not ship. They are resolved and written into the JSX now, flush against the text — JSX turns the newline between two pieces of text into a space, and `「 like this 」` is wrong in every language that does not ask for one.
+
 Component splitting is deliberately skipped — a generated file you can read top to bottom and cut apart yourself beats a structure you have to reverse-engineer first.
 
 Verification is a real `tsc --noEmit --strict --jsx react-jsx` run, **judged by exit code**. That is how the first version turned out not to compile: CSS custom properties are not valid in `React.CSSProperties`. It now emits an `as CSSProperties` cast.

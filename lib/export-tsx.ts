@@ -81,6 +81,32 @@ function escapeText(text: string): string {
     : text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+/**
+ * CSS generated content, resolved to the text it renders as.
+ *
+ * The exported file is meant to stand on its own, with none of our stylesheet
+ * behind it, so anything that exists only as `::before { content: open-quote }`
+ * would simply disappear — which is what happened to every testimonial's
+ * quotation marks the moment they moved from the markup into CSS. Baking them
+ * in keeps the component looking like the page it came from.
+ */
+function generatedText(element: Element, pseudo: "::before" | "::after"): string {
+  const style = getComputedStyle(element, pseudo);
+  const content = style.content;
+  if (!content || content === "none" || content === "normal") return "";
+
+  if (content === "open-quote" || content === "close-quote") {
+    // `quotes` computes to a pair of quoted strings, e.g. `"„" "“"`.
+    const marks = [...style.quotes.matchAll(/"([^"]*)"/g)].map((m) => m[1]!);
+    if (marks.length < 2) return "";
+    return content === "open-quote" ? marks[0]! : marks[1]!;
+  }
+
+  // A string literal; anything else (counters, attr(), images) is left alone.
+  const literal = content.match(/^"([\s\S]*)"$/);
+  return literal ? literal[1]! : "";
+}
+
 function serialize(node: Node, depth: number): string {
   const pad = "  ".repeat(depth);
 
@@ -106,7 +132,12 @@ function serialize(node: Node, depth: number): string {
       continue;
     }
     if (attr.name === "class") {
-      const cleaned = attr.value.replace(/\bblk-in\b/g, "").replace(/\s+/g, " ").trim();
+      // `blk-in` names a keyframe and `quoted` a quote style, and neither rule
+      // ships with the component — the marks are baked in as text below.
+      const cleaned = attr.value
+        .replace(/\b(?:blk-in|quoted)\b/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
       if (cleaned) attributes.push(`className=${JSON.stringify(cleaned)}`);
       continue;
     }
@@ -123,9 +154,29 @@ function serialize(node: Node, depth: number): string {
 
   if (VOID_TAGS.has(tag)) return `${pad}<${tag}${attrText} />`;
 
-  const children = Array.from(element.childNodes)
-    .map((child) => serialize(child, depth + 1))
-    .filter(Boolean);
+  const inner = "  ".repeat(depth + 1);
+  const before = generatedText(element, "::before");
+  const after = generatedText(element, "::after");
+  const childNodes = Array.from(element.childNodes);
+
+  let children: string[];
+  if ((before || after) && childNodes.every((n) => n.nodeType === Node.TEXT_NODE)) {
+    // JSX collapses the newline between two pieces of text into a space, which
+    // would leave one inside every quotation mark — `「 text 」` rather than
+    // `「text」`. Emitting the whole run on one line keeps it exact.
+    const text = childNodes
+      .map((n) => (n.textContent ?? "").replace(/\s+/g, " "))
+      .join("")
+      .trim();
+    const joined = `${before}${text}${after}`;
+    children = joined ? [`${inner}${escapeText(joined)}`] : [];
+  } else {
+    children = [
+      ...(before ? [`${inner}${escapeText(before)}`] : []),
+      ...childNodes.map((child) => serialize(child, depth + 1)),
+      ...(after ? [`${inner}${escapeText(after)}`] : []),
+    ].filter(Boolean);
+  }
 
   if (children.length === 0) return `${pad}<${tag}${attrText} />`;
   return `${pad}<${tag}${attrText}>\n${children.join("\n")}\n${pad}</${tag}>`;

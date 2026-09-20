@@ -1,4 +1,16 @@
+**简体中文** · [English](docs/README.en.md) · [日本語](docs/README.ja.md) · [한국어](docs/README.ko.md)
+
 # loom
+
+<p align="center">
+  <a href="https://github.com/yldm-tech/loom/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/yldm-tech/loom/ci.yml?branch=main&style=flat-square&label=ci"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/yldm-tech/loom?style=flat-square"></a>
+  <a href="https://github.com/yldm-tech/loom/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/yldm-tech/loom?style=flat-square"></a>
+  <a href="https://github.com/yldm-tech/loom/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/yldm-tech/loom?style=flat-square"></a>
+  <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D24-brightgreen?style=flat-square">
+  <a href="https://typesafe.ai"><img alt="Powered by Jev" src="https://img.shields.io/badge/judgement-Jev-5b8def?style=flat-square"></a>
+</p>
+
 
 > 把三股线织成一块布：LLM 写的文案、Jev 做的判断、代码定的规则。
 
@@ -237,6 +249,21 @@ app/
 - **区块类型 13 种**，还缺联系表单、视频、地图。`Gallery` 只出占位色块加文字说明，不生成图片。
 - **`Site.tsx` 是扁平的一大段 JSX**，不是拆好的组件树。能编译、能改，但要长期维护还得自己拆。
 - **文案质量取决于模型。** 换更强的模型会明显变好，也会明显变慢。
+
+## 参与
+
+改动请看 [CONTRIBUTING.md](CONTRIBUTING.md)。加区块、加主题、加界面语言各有一条既定路径，都不长。
+
+## Star History
+
+如果这个思路对你有用，点个 star 是最直接的反馈。
+
+<a href="https://star-history.com/#yldm-tech/loom&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=yldm-tech/loom&type=Date&theme=dark" />
+    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=yldm-tech/loom&type=Date" width="600" />
+  </picture>
+</a>
 
 ## 许可
 

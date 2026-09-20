@@ -88,15 +88,31 @@ describe("READMEs", () => {
     }
   });
 
-  it("embeds the same set of images everywhere", () => {
-    const names = (text: string) =>
-      [...text.matchAll(/<img[^>]+src="[^"]*?([\w.-]+\.(?:png|jpg|gif))"/g)]
+  it("shows each language its own screenshots", () => {
+    // A Chinese README illustrated with an English site is backwards; the
+    // images are of generated output, so they have a language of their own.
+    for (const [lang, text] of Object.entries(texts)) {
+      const names = [...text.matchAll(/<img[^>]+src="[^"]*?([\w.-]+\.(?:png|jpg|gif))"/g)].map(
+        (m) => m[1]!,
+      );
+      expect(names.length, `${lang} embeds no local images`).toBeGreaterThan(0);
+      for (const name of names) {
+        expect(name, `${lang} embeds ${name}, which belongs to another language`).toMatch(
+          new RegExp(`-${lang}\\.(gif|jpg|png)$`),
+        );
+      }
+    }
+  });
+
+  it("gives every language the same kinds of screenshot", () => {
+    const kinds = (text: string) =>
+      [...text.matchAll(/<img[^>]+src="[^"]*?([\w.-]+?)-[a-z]+\.(?:png|jpg|gif)"/g)]
         .map((m) => m[1]!)
         .sort();
-    const reference = names(texts.en!);
+    const reference = kinds(texts.en!);
     expect(reference.length).toBeGreaterThan(0);
     for (const [lang, text] of Object.entries(texts)) {
-      expect(names(text), `${lang} embeds a different set of images`).toEqual(reference);
+      expect(kinds(text), `${lang} is missing a screenshot the others have`).toEqual(reference);
     }
   });
 

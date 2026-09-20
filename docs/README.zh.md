@@ -17,7 +17,7 @@
 一句话描述你的生意，得到一个能用的落地页。
 
 <p align="center">
-  <img src="../docs/images/generate-en.gif" alt="骨架屏按区块逐个填入真实文案" width="640">
+  <img src="../docs/images/generate-zh.gif" alt="骨架屏按区块逐个填入真实文案" width="640">
 </p>
 
 ```
@@ -103,7 +103,7 @@ cp .env.example .env.local   # 填 JEV_TOKEN 和 LLM_TOKEN
 ## 能改什么
 
 <p align="center">
-  <img src="../docs/images/decisions-en.jpg" alt="编辑器，含决策日志和主题选择器" width="820">
+  <img src="../docs/images/decisions-zh.jpg" alt="编辑器，含决策日志和主题选择器" width="820">
 </p>
 
 jev 做过的每个判断、置信度和落地时间都摊开。改错了能查，而不是一团迷雾。
@@ -189,7 +189,7 @@ Brooklyn 那条 `0.66` 偏低也是对的：一句英文描述没有明示要什
 ## 主题即数据
 
 <p align="center">
-  <img src="../docs/images/themes-6up-en.jpg" alt="同一个站点在六套主题下的样子" width="820">
+  <img src="../docs/images/themes-zh.jpg" alt="同一个站点在六套主题下的样子" width="820">
 </p>
 
 同一份生成的文案，六套主题。切换只是客户端改一个 prop——不调模型，不重新生成。

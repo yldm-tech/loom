@@ -17,7 +17,7 @@
 商売を一文で説明すると、そのまま使えるランディングページが返ってきます。
 
 <p align="center">
-  <img src="../docs/images/generate-en.gif" alt="スケルトンにブロックが順に流し込まれていく様子" width="640">
+  <img src="../docs/images/generate-ja.gif" alt="スケルトンにブロックが順に流し込まれていく様子" width="640">
 </p>
 
 ```
@@ -103,7 +103,7 @@ cp .env.example .env.local   # JEV_TOKEN と LLM_TOKEN を記入
 ## 生成後の修正
 
 <p align="center">
-  <img src="../docs/images/decisions-en.jpg" alt="判断ログとテーマ切り替えを含むエディタ画面" width="820">
+  <img src="../docs/images/decisions-ja.jpg" alt="判断ログとテーマ切り替えを含むエディタ画面" width="820">
 </p>
 
 Jev が下した判断と確信度、到着時刻がすべて並びます。修正が外れても原因を追えます。
@@ -189,7 +189,7 @@ Brooklyn の行が `0.66` と低いのも妥当です。英語の一文がどの
 ## テーマはデータ
 
 <p align="center">
-  <img src="../docs/images/themes-6up-en.jpg" alt="同じサイトを 6 つのテーマで表示したもの" width="820">
+  <img src="../docs/images/themes-ja.jpg" alt="同じサイトを 6 つのテーマで表示したもの" width="820">
 </p>
 
 同じ文章を 6 テーマで。切り替えはクライアント側の prop 一つの変更で、モデルは呼ばれず再生成も起きません。

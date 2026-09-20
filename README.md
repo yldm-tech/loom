@@ -189,7 +189,7 @@ Size-wise it only saves 16% (Tailwind was never the problem). The real gain is t
 ## Themes are data
 
 <p align="center">
-  <img src="docs/images/themes-6up-en.jpg" alt="The same generated site under all six themes" width="820">
+  <img src="docs/images/themes-en.jpg" alt="The same generated site under all six themes" width="820">
 </p>
 
 The same generated copy under all six themes. Switching is a single client-side prop change — no model call, no regeneration.

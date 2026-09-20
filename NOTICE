@@ -1,0 +1,11 @@
+loom
+Copyright 2026 YLDM
+
+This product includes software developed at Vercel Labs:
+json-render (https://github.com/vercel-labs/json-render), licensed under
+the Apache License, Version 2.0. The @json-render/core and @json-render/react
+packages are consumed as published npm dependencies; no upstream source is
+vendored into this repository.
+
+Judgements are made by Jev, a decision model from TypeSafe AI
+(https://typesafe.ai), accessed over its public HTTP API.

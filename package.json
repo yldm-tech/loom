@@ -1,0 +1,30 @@
+{
+  "name": "loom",
+  "version": "0.1.0",
+  "private": false,
+  "license": "Apache-2.0",
+  "description": "Generate a whole marketing site from one sentence: an LLM writes the copy, Jev makes the judgement calls, and code owns the rules.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@json-render/core": "0.21.0",
+    "@json-render/react": "0.21.0",
+    "next": "^16.1.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.2"
+  }
+}

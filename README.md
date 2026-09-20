@@ -17,7 +17,7 @@
 Describe your business in a sentence, get a landing page you can actually use.
 
 <p align="center">
-  <img src="docs/images/generate-en.gif" alt="Blocks filling into a themed skeleton as copy arrives" width="640">
+  <img src="docs/images/generate-en.webp" alt="Blocks filling into a themed skeleton as copy arrives" width="640">
 </p>
 
 ```

@@ -17,7 +17,7 @@
 사업을 한 문장으로 설명하면, 바로 쓸 수 있는 랜딩 페이지가 나옵니다.
 
 <p align="center">
-  <img src="../docs/images/generate-ko.gif" alt="스켈레톤에 블록이 하나씩 채워지는 모습" width="640">
+  <img src="../docs/images/generate-ko.webp" alt="스켈레톤에 블록이 하나씩 채워지는 모습" width="640">
 </p>
 
 ```

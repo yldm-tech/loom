@@ -17,7 +17,7 @@
 商売を一文で説明すると、そのまま使えるランディングページが返ってきます。
 
 <p align="center">
-  <img src="../docs/images/generate-ja.gif" alt="スケルトンにブロックが順に流し込まれていく様子" width="640">
+  <img src="../docs/images/generate-ja.webp" alt="スケルトンにブロックが順に流し込まれていく様子" width="640">
 </p>
 
 ```

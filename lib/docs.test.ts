@@ -80,7 +80,7 @@ describe("READMEs", () => {
     const onDisk = readdirSync(join(ROOT, "docs", "images"));
     const referenced = new Set(
       Object.values(texts).flatMap((text) =>
-        [...text.matchAll(/<img[^>]+src="[^"]*?([\w.-]+\.(?:png|jpg|gif))"/g)].map((m) => m[1]!),
+        [...text.matchAll(/<img[^>]+src="[^"]*?([\w.-]+\.(?:png|jpg|gif|webp))"/g)].map((m) => m[1]!),
       ),
     );
     for (const file of onDisk) {
@@ -92,13 +92,13 @@ describe("READMEs", () => {
     // A Chinese README illustrated with an English site is backwards; the
     // images are of generated output, so they have a language of their own.
     for (const [lang, text] of Object.entries(texts)) {
-      const names = [...text.matchAll(/<img[^>]+src="[^"]*?([\w.-]+\.(?:png|jpg|gif))"/g)].map(
+      const names = [...text.matchAll(/<img[^>]+src="[^"]*?([\w.-]+\.(?:png|jpg|gif|webp))"/g)].map(
         (m) => m[1]!,
       );
       expect(names.length, `${lang} embeds no local images`).toBeGreaterThan(0);
       for (const name of names) {
         expect(name, `${lang} embeds ${name}, which belongs to another language`).toMatch(
-          new RegExp(`-${lang}\\.(gif|jpg|png)$`),
+          new RegExp(`-${lang}\\.(gif|jpg|png|webp)$`),
         );
       }
     }
@@ -106,7 +106,7 @@ describe("READMEs", () => {
 
   it("gives every language the same kinds of screenshot", () => {
     const kinds = (text: string) =>
-      [...text.matchAll(/<img[^>]+src="[^"]*?([\w.-]+?)-[a-z]+\.(?:png|jpg|gif)"/g)]
+      [...text.matchAll(/<img[^>]+src="[^"]*?([\w.-]+?)-[a-z]+\.(?:png|jpg|gif|webp)"/g)]
         .map((m) => m[1]!)
         .sort();
     const reference = kinds(texts.en!);

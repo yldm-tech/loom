@@ -17,7 +17,7 @@
 一句话描述你的生意，得到一个能用的落地页。
 
 <p align="center">
-  <img src="../docs/images/generate-zh.gif" alt="骨架屏按区块逐个填入真实文案" width="640">
+  <img src="../docs/images/generate-zh.webp" alt="骨架屏按区块逐个填入真实文案" width="640">
 </p>
 
 ```

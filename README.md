@@ -17,7 +17,7 @@
 Describe your business in a sentence, get a landing page you can actually use.
 
 <p align="center">
-  <img src="docs/images/stream.gif" alt="Blocks filling into a themed skeleton as copy arrives" width="640">
+  <img src="docs/images/generate-en.gif" alt="Blocks filling into a themed skeleton as copy arrives" width="640">
 </p>
 
 ```
@@ -103,10 +103,10 @@ The files under `fixtures/` are **actual recorded runs**, not hand-written. A de
 ## Editing afterwards
 
 <p align="center">
-  <img src="docs/images/editor.jpg" alt="The editor, with the decision log and theme picker" width="820">
+  <img src="docs/images/decisions-en.jpg" alt="The editor, with the decision log and theme picker" width="820">
 </p>
 
-The decision log shows what Jev chose and how sure it was, so an edit that misfires is traceable rather than mysterious.
+Every judgement Jev made, with its confidence and when it landed. An edit that misfires is traceable rather than mysterious.
 
 
 Say what you want in plain language. One request, 200–400 ms, and **no copy is regenerated**:
@@ -189,7 +189,7 @@ Size-wise it only saves 16% (Tailwind was never the problem). The real gain is t
 ## Themes are data
 
 <p align="center">
-  <img src="docs/images/themes.jpg" alt="The same generated site under all six themes" width="820">
+  <img src="docs/images/themes-6up-en.jpg" alt="The same generated site under all six themes" width="820">
 </p>
 
 The same generated copy under all six themes. Switching is a single client-side prop change — no model call, no regeneration.

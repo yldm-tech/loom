@@ -17,7 +17,7 @@
 사업을 한 문장으로 설명하면, 바로 쓸 수 있는 랜딩 페이지가 나옵니다.
 
 <p align="center">
-  <img src="../docs/images/stream.gif" alt="스켈레톤에 블록이 하나씩 채워지는 모습" width="640">
+  <img src="../docs/images/generate-en.gif" alt="스켈레톤에 블록이 하나씩 채워지는 모습" width="640">
 </p>
 
 ```
@@ -103,10 +103,10 @@ cp .env.example .env.local   # JEV_TOKEN 과 LLM_TOKEN 기입
 ## 생성 후 수정
 
 <p align="center">
-  <img src="../docs/images/editor.jpg" alt="The editor, with the decision log and theme picker" width="820">
+  <img src="../docs/images/decisions-en.jpg" alt="판단 로그와 테마 선택기가 있는 에디터" width="820">
 </p>
 
-판단 로그에 Jev가 무엇을 얼마나 확신하고 골랐는지 드러나므로, 수정이 빗나가도 원인을 추적할 수 있습니다.
+Jev가 내린 모든 판단과 확신도, 도착 시각이 그대로 드러납니다. 수정이 빗나가도 원인을 추적할 수 있습니다.
 
 
 평범한 말로 지시하면 됩니다. 요청 1회, 200–400ms, **문구는 전혀 다시 생성하지 않습니다**.
@@ -189,7 +189,7 @@ Brooklyn 줄이 `0.66`으로 낮은 것도 타당합니다. 영어 한 문장이
 ## 테마는 데이터
 
 <p align="center">
-  <img src="../docs/images/themes.jpg" alt="같은 사이트를 여섯 테마로 렌더링한 모습" width="820">
+  <img src="../docs/images/themes-6up-en.jpg" alt="같은 사이트를 여섯 테마로 렌더링한 모습" width="820">
 </p>
 
 같은 문구를 여섯 테마로. 전환은 클라이언트 prop 하나를 바꾸는 일이며 모델 호출도 재생성도 없습니다.

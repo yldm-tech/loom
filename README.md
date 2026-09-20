@@ -104,6 +104,8 @@ Get `JEV_TOKEN` from [typesafe.ai](https://typesafe.ai). `LLM_TOKEN` works with 
 
 The files under `fixtures/` are **actual recorded runs**, not hand-written. A demo propped up by invented output nobody could reproduce is worse than no demo.
 
+Editing works in demo mode too, but not through Jev — there are no keys to call it with. A word list maps a handful of instructions onto outcomes the UI can apply on its own, which is why every confidence it reports there reads 1.00. That list is the one place adding a UI language can quietly break something, so a test feeds each language's own placeholder suggestions back through it: four locales shipped without that check, and every suggestion the app made in them did nothing.
+
 ## Editing afterwards
 
 <p align="center">

@@ -99,4 +99,44 @@ describe("replayEdit", () => {
     expect(replayEdit("帮我部署上线", present, "warm").action).toBe("unclear");
     expect(replayEdit("写一篇博客", present, "warm").action).toBe("unclear");
   });
+
+  /**
+   * The placeholder is a promise: it tells the reader, in their language, what
+   * they can type. Demo mode is the default for anyone without keys, so a
+   * suggestion it cannot honour is the first thing they try and the first thing
+   * that does nothing. Four languages shipped that way — German, French,
+   * Spanish and Portuguese, every suggestion dead — because the word list was
+   * written when there were four locales and nothing tied the two together.
+   */
+  const suggestions = (placeholder: string) =>
+    [...placeholder.matchAll(/[「『"“”«»„]\s*([^「』"“”«»„]+?)\s*[」』"“”«»]/g)]
+      .map((m) => m[1]!.trim())
+      .filter((s) => s.length > 2);
+
+  it("honours every edit its own placeholder suggests, in every language", () => {
+    const everything = ["nav", "hero", "social", "pricing", "faq", "footer", "gallery"];
+    for (const locale of UI_LOCALES) {
+      const dict = JSON.parse(
+        readFileSync(join(import.meta.dirname, "..", "locales", `${locale}.json`), "utf8"),
+      ) as { editPlaceholder: string };
+
+      const proposed = suggestions(dict.editPlaceholder);
+      expect(proposed.length, `${locale} placeholder suggests nothing parseable`).toBeGreaterThan(0);
+
+      for (const suggestion of proposed) {
+        expect(
+          replayEdit(suggestion, everything, "forest").action,
+          `${locale} suggests "${suggestion}" but demo mode cannot do it`,
+        ).not.toBe("unclear");
+      }
+    }
+  });
+
+  it("reads an instruction the same with or without its accents", () => {
+    // People type "enjoue" and "precos" on keyboards that make the accent work.
+    const present = ["nav", "hero", "pricing", "footer"];
+    expect(replayEdit("rends-le plus enjoue", present, "forest").theme).toBe("coral");
+    expect(replayEdit("tire os precos", present, "forest").slot).toBe("pricing");
+    expect(replayEdit("mach es dunkler", present, "forest").theme).toBe("terminal");
+  });
 });

@@ -102,6 +102,8 @@ O `JEV_TOKEN` sai do [typesafe.ai](https://typesafe.ai). O `LLM_TOKEN` funciona 
 
 Os arquivos em `fixtures/` são **execuções realmente gravadas**, não escritas à mão. Uma demo apoiada em uma saída inventada que ninguém consegue reproduzir é pior do que não ter demo.
 
+No modo demo também dá para editar, mas não através do Jev: não há chaves para chamá-lo. Uma lista de palavras mapeia um punhado de instruções para resultados que a interface consegue aplicar sozinha, e é por isso que toda confiança relatada ali é 1,00. Essa lista é o único ponto onde acrescentar um idioma de interface pode quebrar algo em silêncio, então um teste devolve a ela as sugestões do placeholder de cada idioma: quatro locales saíram sem essa verificação, e nenhuma das sugestões que a aplicação fazia neles fazia coisa alguma.
+
 ## Editar depois
 
 <p align="center">

@@ -103,6 +103,8 @@ cp .env.example .env.local   # JEV_TOKEN und LLM_TOKEN eintragen
 
 Die Dateien unter `fixtures/` sind **tatsächlich aufgezeichnete Läufe**, nicht von Hand geschrieben. Eine Demo, die sich auf erfundene Ausgaben stützt, die niemand reproduzieren kann, ist schlechter als gar keine Demo.
 
+Im Demomodus lässt sich ebenfalls bearbeiten, aber nicht über Jev — es gibt keinen Schlüssel, um es aufzurufen. Eine Wortliste bildet eine Handvoll Anweisungen auf Ergebnisse ab, die die Oberfläche allein anwenden kann, und deshalb steht dort bei jeder Konfidenz 1,00. Diese Liste ist die eine Stelle, an der eine zusätzliche Oberflächensprache still etwas kaputtmachen kann, also schickt ein Test die Vorschläge aus dem Platzhalter jeder Sprache wieder durch sie hindurch: vier Locales sind ohne diese Prüfung erschienen, und kein einziger Vorschlag, den die Anwendung dort machte, bewirkte etwas.
+
 ## Nachträglich ändern
 
 <p align="center">

@@ -103,6 +103,8 @@ cp .env.example .env.local   # renseignez JEV_TOKEN et LLM_TOKEN
 
 Les fichiers de `fixtures/` sont de **vraies exécutions enregistrées**, pas des fichiers écrits à la main. Une démo qui tient debout grâce à une sortie inventée que personne ne peut reproduire vaut moins que pas de démo du tout.
 
+Le mode démo permet aussi de modifier, mais pas via Jev : il n'y a pas de clé pour l'appeler. Une liste de mots associe une poignée d'instructions aux résultats que l'interface sait appliquer seule, et c'est pourquoi toute confiance affichée là vaut 1,00. Cette liste est le seul endroit où ajouter une langue d'interface peut casser quelque chose en silence, donc un test y repasse les suggestions du placeholder de chaque langue : quatre locales sont sorties sans cette vérification, et aucune des suggestions que l'application y faisait ne produisait quoi que ce soit.
+
 ## Modifier ensuite
 
 <p align="center">

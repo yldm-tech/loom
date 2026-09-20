@@ -122,6 +122,24 @@ describe("READMEs", () => {
     }
   });
 
+  it("has the same number of blocks in every language", () => {
+    // Heading parity catches a missing section but not a missing paragraph
+    // inside one, which is exactly how a note about demo-mode editing reached
+    // six translations and skipped two. The eight are written to correspond
+    // block for block, so the count is the cheapest check that says so.
+    const blocks = (text: string) =>
+      text
+        .replace(/```[\s\S]*?```/g, "CODE")
+        .split(/\n\s*\n/)
+        .filter((b) => b.trim()).length;
+    const reference = blocks(texts.en!);
+    for (const [lang, text] of Object.entries(texts)) {
+      expect(blocks(text), `${lang} has a block the others do not, or is missing one`).toBe(
+        reference,
+      );
+    }
+  });
+
   it("keeps every README on the same capture generation", () => {
     // The filenames carry a generation because GitHub caches README images by
     // URL. If one translation is bumped alone, its readers see a different run

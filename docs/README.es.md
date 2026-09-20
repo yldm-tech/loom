@@ -102,6 +102,8 @@ cp .env.example .env.local   # rellena JEV_TOKEN y LLM_TOKEN
 
 Los archivos de `fixtures/` son **ejecuciones realmente grabadas**, no escritas a mano. Una demo sostenida por una salida inventada que nadie puede reproducir es peor que no tener demo.
 
+En modo demo también se puede editar, pero no a través de Jev: no hay claves con las que llamarlo. Una lista de palabras asigna un puñado de instrucciones a resultados que la interfaz puede aplicar por su cuenta, y por eso toda confianza que informa ahí es 1,00. Esa lista es el único sitio donde añadir un idioma de interfaz puede romper algo en silencio, así que una prueba vuelve a pasar por ella las sugerencias del propio placeholder de cada idioma: cuatro locales se publicaron sin esa comprobación, y ninguna de las sugerencias que la aplicación hacía en ellos hacía nada.
+
 ## Editar después
 
 <p align="center">

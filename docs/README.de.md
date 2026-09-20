@@ -16,7 +16,7 @@
 Beschreibe dein Geschäft in einem Satz und bekomme eine Landingpage, die man wirklich benutzen kann.
 
 <p align="center">
-  <img src="../docs/images/generate-de.webp" alt="Blöcke füllen sich nach und nach in ein bereits eingefärbtes Gerüst" width="640">
+  <img src="../docs/images/generate-de-2.webp" alt="Blöcke füllen sich nach und nach in ein bereits eingefärbtes Gerüst" width="640">
 </p>
 
 ```
@@ -45,7 +45,7 @@ Dieses Projekt teilt Entscheidungen danach auf, **wo die Information liegt**:
 
 Der Prüfstein ist einfach: **dauerhaft niedrige Konfidenz heißt, dass die falsche Instanz gefragt wurde** — entweder enthält die Eingabe die Antwort nicht, oder die Frage brauchte gar kein Urteil.
 
-Dieses Muster tauchte während der Entwicklung dreimal auf. Jedes Mal bestand die Lösung darin, die Frage durch eine sachliche plus eine Coderegel zu ersetzen:
+Dieses Muster tauchte während der Entwicklung viermal auf. Jedes Mal bestand die Lösung darin, die Frage durch eine sachliche plus eine Coderegel zu ersetzen:
 
 ```
 jev fragen „Raster oder Liste?“                → 0,16  ← die Anfrage sagt dazu nichts
@@ -53,6 +53,10 @@ das LLM melden lassen „wie viele Punkte?“      → Code: ab 5 wird es ein Ra
 
 jev fragen „Kopfbereich zentriert oder geteilt?“ → 0,28  ← dasselbe Problem
 das LLM melden lassen „gibt es einen Screenshot?“ → Code: geteilt nur mit Screenshot deterministisch
+
+jev fragen „welche Sprache ist das?“           → 0,76  ← und die Antwort war falsch
+die Schrift im Code erkennen                   → jev nur: „wird eine andere
+                                                  Sprache verlangt?“              aufteilen
 
 jev fragen „welches visuelle Thema?“           → 0,99  ← „lebendig“, „Bankkunden“ stehen da
 bleibt so                                                                           Urteil
@@ -62,7 +66,7 @@ bleibt so                                                                       
 
 | Urteil | Konfidenz |
 |---|---|
-| Textsprache (1 von 9) | 0,66 – 1,00 |
+| Verlangte Sprache (1 von 9, wenn verlangt) | 1,00 |
 | Visuelles Thema (1 von 6) | 0,98 – 1,00 |
 | Seitenarchetyp (1 von 6) | 0,62 – 1,00 |
 | Änderungsabsicht (1 von 6) | 0,98 – 1,00 |
@@ -102,7 +106,7 @@ Die Dateien unter `fixtures/` sind **tatsächlich aufgezeichnete Läufe**, nicht
 ## Nachträglich ändern
 
 <p align="center">
-  <img src="../docs/images/decisions-de.jpg" alt="Der Editor mit Entscheidungsprotokoll und Themenauswahl" width="820">
+  <img src="../docs/images/decisions-de-2.jpg" alt="Der Editor mit Entscheidungsprotokoll und Themenauswahl" width="820">
 </p>
 
 Jedes Urteil von Jev, mit Konfidenz und Zeitpunkt. Eine Änderung, die danebengeht, lässt sich nachvollziehen statt rätselhaft zu bleiben.
@@ -133,20 +137,35 @@ Stil der Navileiste ändern   → theme@0,87    theme_target=coral@0,15     bloc
 
 **Ein Schwellenwert ist keine globale Konstante. Er ergibt sich aus den Kosten des Irrtums.**
 
-## Sprache ist ein Urteil, keine Erkennung
+## Sprache sind zwei Fragen, nicht eine
 
-Auch die Sprache, in der die Seite geschrieben wird, entscheidet Jev — in derselben Anfrage wie Thema und Archetyp, also ohne zusätzlichen Roundtrip.
+„In welcher Sprache soll diese Seite geschrieben sein?" sieht nach einem einzigen Urteil aus, und hier war es eine Zeit lang auch eines. Über zehn Anfragen gemessen, beantwortete dieses eine Choice eine englische Anfrage mit `zh` bei 0.76 Konfidenz und lag bei einer anderen zwar richtig, aber nur bei 0.63. Drei von zehn kamen unter 0.85 zurück.
+
+Die niedrige Konfidenz war das Signal — die Frage waren zwei übereinandergelegte Fragen:
+
+| Frage | Wer beantwortet sie | Wie |
+|---|---|---|
+| In welcher Schrift ist diese Anfrage geschrieben? | Code | Kana, Hangul und Han sind drei reguläre Ausdrücke. Lateinische Schrift lässt sich aus dem Text heraus nicht weiter eingrenzen, also entscheidet das locale des Editors selbst |
+| Verlangt sie eine andere Sprache als die, in der sie geschrieben ist? | Jev | Die Antwort steht im Satz, und nur wer liest, kann sie sehen |
+
+So getrennt wurden beide Hälften scharf. Über elf Anfragen trennte die Frage nach dem ausdrücklichen Wunsch ihre beiden Populationen bei 0.03 gegen 0.85, ohne eine einzige falsch zu lesen, und die Anschlussfrage „welche denn?" beantwortete alle vier Fälle mit 1.00.
 
 ```
-我在杭州开了家咖啡店                           → zh @1,00
-我们做数据合规 SaaS，卖给海外客户，要做英文站     → en @1,00   ← auf Chinesisch beschrieben, will Englisch
-A small bakery in Brooklyn                   → en @0,66
-東京で小さなラーメン屋をやっています              → ja @0,99
+我在杭州开了家咖啡店                         → zh  script
+A small bakery in Brooklyn                 → en  locale
+東京で小さなラーメン屋をやっています            → ja  script
+我做外贸的，帮我做个英文站，客户都在北美         → en  request @1.00   ← verlangt, nicht erkannt
 ```
 
-Die zweite Zeile ist der Punkt. **In welcher Sprache man schreibt, ist nicht die Sprache, in der geschrieben werden soll**: Jemand beschreibt sein Geschäft auf Chinesisch, braucht aber eine englische Seite für Kundschaft im Ausland — und sagt das meist in genau diesem Satz. Reine Erkennung liegt hier immer daneben, ein Urteil trifft es.
+Die vierte Zeile bleibt der Punkt. **Worin Sie schreiben, ist nicht, was Sie geschrieben haben wollen** — jemand beschreibt sein Geschäft auf Chinesisch, braucht aber für Kunden im Ausland eine englische Seite, und sagt das meist in genau diesem Satz. Dieser Teil ist ein Urteil und bleibt bei Jev. In welcher Schrift getippt wurde, nicht.
 
-Die `0,66` in der Brooklyn-Zeile sind ebenfalls richtig: Ein englischer Satz, der keine Zielsprache nennt, macht `en` zu einer Schlussfolgerung und nicht zu einer Anweisung — die Wahrscheinlichkeit soll sich also verteilen.
+Vereinfacht gegen traditionell ist die einzige Unterscheidung, die der Code nicht versucht: Sie betrifft Markt und Wortwahl, nicht die Schrift, deshalb bekommt eine Han-Anfrage ein zusätzliches Choice zwischen `zh` und `zh-Hant`.
+
+### Die Sprache zu entscheiden ist nur die Hälfte
+
+Die Seite kam weiterhin auf Chinesisch zurück. Das Feld-Schema der Copy-Schicht ist bis hinunter zu seinen `字`-Zählungen auf Chinesisch geschrieben, und mit der Sprachregel in der Präambel folgte das Modell dem Schema statt der Anweisung: eine französische Anfrage erzeugte 476 chinesische Zeichen, eine deutsche 429. Die Regel hinter das Schema zu verschieben, behob das Französische, nicht das Deutsche. Sie zusätzlich im User-Turn zu wiederholen, brachte Französisch, Deutsch, Koreanisch und Englisch alle auf null.
+
+Drei Feldbeschreibungen verlangten zudem von sich aus eine chinesische Seite — der `name` eines Teammitglieds war als „ein chinesischer Name" angegeben, Preise als `¥`, Zahlen in `万`. Sie folgen jetzt der Copy-Sprache, und die Währung folgt dem Standort des Geschäfts statt der Sprache, sodass eine englische Seite für ein Kyotoer Atelier weiterhin in Yen auszeichnet.
 
 Unterstützt `en` / `zh` / `ja` / `ko` / `es` / `fr` / `de` / `pt` / `zh-Hant`. Die Längenangaben sind für Chinesisch geschrieben, andere Sprachen bekommen deshalb einen Umrechnungshinweis.
 
@@ -187,7 +206,7 @@ An Größe spart das nur 16 % (Tailwind war nie das Problem). Der eigentliche Ge
 ## Themes sind Daten
 
 <p align="center">
-  <img src="../docs/images/themes-de.jpg" alt="Dieselbe generierte Seite in allen sechs Themes" width="820">
+  <img src="../docs/images/themes-de-2.jpg" alt="Dieselbe generierte Seite in allen sechs Themes" width="820">
 </p>
 
 Derselbe generierte Text in allen sechs Themes. Umschalten ist eine einzige Prop-Änderung im Client: kein Modellaufruf, keine Neuerzeugung.

@@ -17,7 +17,7 @@
 Describe your business in a sentence, get a landing page you can actually use.
 
 <p align="center">
-  <img src="docs/images/generate-en.webp" alt="Blocks filling into a themed skeleton as copy arrives" width="640">
+  <img src="docs/images/generate-en-2.webp" alt="Blocks filling into a themed skeleton as copy arrives" width="640">
 </p>
 
 ```
@@ -46,7 +46,7 @@ This project splits decisions by **where the information lives**:
 
 The test is simple: **persistently low confidence means you asked the wrong party** — either the input holds no answer, or the question needed no judgement at all.
 
-That pattern showed up three times during development. Each time the fix was to replace the question with a factual one plus a code rule:
+That pattern showed up four times during development. Each time the fix was to replace the question with a factual one plus a code rule:
 
 ```
 ask jev "grid or list for features?"      → 0.16  ← the request says nothing about it
@@ -54,6 +54,10 @@ have the LLM report "how many points?"    → code: >= 5 means grid        deter
 
 ask jev "centered or split hero?"         → 0.28  ← same problem
 have the LLM report "is there a UI shot?" → code: split only with a shot deterministic
+
+ask jev "which language is this?"         → 0.76  ← and the answer was wrong
+detect the script in code                 → jev only: "did they ask for
+                                                       another language?"  split
 
 ask jev "which visual theme?"             → 0.99  ← "playful", "financial clients" are right there
 keep it                                                                  judgement
@@ -63,7 +67,7 @@ keep it                                                                  judgeme
 
 | Judgement | Confidence |
 |---|---|
-| Copy language (1 of 9) | 0.66 – 1.00 |
+| Asked-for language (1 of 9, when asked) | 1.00 |
 | Visual theme (1 of 6) | 0.98 – 1.00 |
 | Page archetype (1 of 6) | 0.62 – 1.00 |
 | Edit intent (1 of 6) | 0.98 – 1.00 |
@@ -103,7 +107,7 @@ The files under `fixtures/` are **actual recorded runs**, not hand-written. A de
 ## Editing afterwards
 
 <p align="center">
-  <img src="docs/images/decisions-en.jpg" alt="The editor, with the decision log and theme picker" width="820">
+  <img src="docs/images/decisions-en-2.jpg" alt="The editor, with the decision log and theme picker" width="820">
 </p>
 
 Every judgement Jev made, with its confidence and when it landed. An edit that misfires is traceable rather than mysterious.
@@ -135,20 +139,35 @@ change the navbar style  → theme@0.87    theme_target=coral@0.15     blocked
 
 **A threshold is not a global constant. It follows from the cost of being wrong.**
 
-## Language is a judgement, not a detection
+## Language is two questions, not one
 
-The language the site is written in also goes to Jev, in the same request as theme and archetype, so it costs no extra round trip.
+Asking "which language should this site be written in?" looks like a single judgement, and it was one here for a while. Across ten requests that one Choice put an English request in `zh` at 0.76 confidence, and was right but shaky at 0.63 on another. Three of the ten came back under 0.85.
+
+The low confidence was the tell — the question was two questions stacked:
+
+| Question | Who answers it | How |
+|---|---|---|
+| Which script is this request written in? | Code | Kana, Hangul and Han are three regexes. Latin script cannot be narrowed further from the text, so the editor's own locale decides |
+| Does it ask for a language other than the one it is written in? | Jev | The answer is in the sentence, and only a reader can see it |
+
+Split that way, both halves came out crisp. The override question separated its two populations by 0.03 against 0.85 across eleven requests and misread none of them, and the follow-up "which language, then" answered every override case at 1.00.
 
 ```
-我在杭州开了家咖啡店                           → zh @1.00
-我们做数据合规 SaaS，卖给海外客户，要做英文站     → en @1.00   ← described in Chinese, wants English
-A small bakery in Brooklyn                   → en @0.66
-東京で小さなラーメン屋をやっています              → ja @0.99
+我在杭州开了家咖啡店                         → zh  script
+A small bakery in Brooklyn                 → en  locale
+東京で小さなラーメン屋をやっています            → ja  script
+我做外贸的，帮我做个英文站，客户都在北美         → en  request @1.00   ← asked for, not detected
 ```
 
-The second line is the point. **What you write in is not what you want written** — someone describes their business in Chinese but needs an English site for overseas customers, and they usually say so in that very sentence. Pure detection gets this wrong every time; judgement gets it right.
+The fourth line is still the point. **What you write in is not what you want written** — someone describes their business in Chinese but needs an English site for overseas customers, and they usually say so in that very sentence. That part is a judgement and stays with Jev. Which script they typed in is not.
 
-The `0.66` on the Brooklyn line is also correct: an English sentence that never states a target language makes `en` an inference rather than an instruction, so the probability should spread.
+Simplified versus traditional is the one split code does not attempt: it is a question about market and word choice rather than script, so a Han-script request gets one extra Choice between `zh` and `zh-Hant`.
+
+### Deciding the language is only half of it
+
+The site still came back in Chinese. The copy layer's field schema is written in Chinese down to its `字` counts, and with the language rule up in the preamble the model followed the schema instead of the instruction: one French request produced 476 Chinese characters and a German one 429. Moving the rule after the schema fixed French and not German. Repeating it in the user turn as well brought French, German, Korean and English all to zero.
+
+Three field descriptions were quietly demanding a Chinese site on their own — a team member's `name` was specified as "a Chinese name", prices as `¥`, figures in `万`. Those now follow the copy language, and the currency follows the business's location rather than the language, so an English page for a Kyoto studio still prices in yen.
 
 Supports `en` / `zh` / `ja` / `ko` / `es` / `fr` / `de` / `pt` / `zh-Hant`. Length hints are written for Chinese, so other languages get a conversion note appended.
 
@@ -189,7 +208,7 @@ Size-wise it only saves 16% (Tailwind was never the problem). The real gain is t
 ## Themes are data
 
 <p align="center">
-  <img src="docs/images/themes-en.jpg" alt="The same generated site under all six themes" width="820">
+  <img src="docs/images/themes-en-2.jpg" alt="The same generated site under all six themes" width="820">
 </p>
 
 The same generated copy under all six themes. Switching is a single client-side prop change — no model call, no regeneration.

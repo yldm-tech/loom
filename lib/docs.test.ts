@@ -92,6 +92,12 @@ describe("READMEs", () => {
     }
   });
 
+  /** `themes-ko-2.jpg` → kind `themes`, language `ko`, generation `2`. */
+  const captures = (text: string) =>
+    [...text.matchAll(/<img[^>]+src="[^"]*?(\w+)-([a-z]{2})-(\d+)\.(?:png|jpg|gif|webp)"/g)].map(
+      (m) => ({ kind: m[1]!, lang: m[2]!, gen: m[3]! }),
+    );
+
   it("shows its own screenshots, or falls back to English wholesale", () => {
     // A Chinese README illustrated with an English site is backwards, so a
     // language with its own captures must use them. A language without any
@@ -99,27 +105,35 @@ describe("READMEs", () => {
     // a reader looking at two different runs side by side.
     const { existsSync } = require("node:fs") as typeof import("node:fs");
     for (const [lang, text] of Object.entries(texts)) {
-      const names = [...text.matchAll(/<img[^>]+src="[^"]*?([\w.-]+\.(?:png|jpg|gif|webp))"/g)].map(
-        (m) => m[1]!,
+      const shots = captures(text);
+      expect(shots.length, `${lang} embeds no local images`).toBeGreaterThan(0);
+
+      const languages = new Set(shots.map((s) => s.lang));
+      expect(languages.size, `${lang} mixes screenshots from different runs`).toBe(1);
+
+      const used = [...languages][0]!;
+      const own = shots[0]!.gen;
+      const ownCapturesExist = existsSync(
+        join(ROOT, "docs", "images", `generate-${lang}-${own}.webp`),
       );
-      expect(names.length, `${lang} embeds no local images`).toBeGreaterThan(0);
-
-      const suffixes = new Set(names.map((n) => n.match(/-([a-z-]+)\.\w+$/)?.[1]));
-      expect(suffixes.size, `${lang} mixes screenshots from different runs`).toBe(1);
-
-      const used = [...suffixes][0]!;
-      const ownCapturesExist = existsSync(join(ROOT, "docs", "images", `generate-${lang}.webp`));
       expect(used, `${lang} should use ${ownCapturesExist ? "its own" : "the English"} captures`).toBe(
         ownCapturesExist ? lang : "en",
       );
     }
   });
 
+  it("keeps every README on the same capture generation", () => {
+    // The filenames carry a generation because GitHub caches README images by
+    // URL. If one translation is bumped alone, its readers see a different run
+    // from everyone else's.
+    const generations = new Set(
+      Object.values(texts).flatMap((text) => captures(text).map((s) => s.gen)),
+    );
+    expect([...generations], "READMEs reference more than one capture generation").toHaveLength(1);
+  });
+
   it("gives every language the same kinds of screenshot", () => {
-    const kinds = (text: string) =>
-      [...text.matchAll(/<img[^>]+src="[^"]*?([\w.-]+?)-[a-z]+\.(?:png|jpg|gif|webp)"/g)]
-        .map((m) => m[1]!)
-        .sort();
+    const kinds = (text: string) => captures(text).map((s) => s.kind).sort();
     const reference = kinds(texts.en!);
     expect(reference.length).toBeGreaterThan(0);
     for (const [lang, text] of Object.entries(texts)) {

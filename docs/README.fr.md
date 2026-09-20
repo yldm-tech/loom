@@ -16,7 +16,7 @@
 Décrivez votre activité en une phrase et obtenez une page d'atterrissage réellement utilisable.
 
 <p align="center">
-  <img src="../docs/images/generate-fr.webp" alt="Les blocs se remplissent sur un squelette déjà thématisé" width="640">
+  <img src="../docs/images/generate-fr-2.webp" alt="Les blocs se remplissent sur un squelette déjà thématisé" width="640">
 </p>
 
 ```
@@ -45,7 +45,7 @@ Ce projet découpe les décisions selon **l'endroit où se trouve l'information*
 
 Le critère est simple : **une confiance durablement basse signifie que vous avez interrogé la mauvaise partie**, soit parce que l'entrée ne contient pas la réponse, soit parce que la question ne demandait aucun jugement.
 
-Ce schéma est apparu trois fois pendant le développement. Chaque fois, la correction a consisté à remplacer la question par une question factuelle assortie d'une règle en code :
+Ce schéma est apparu quatre fois pendant le développement. Chaque fois, la correction a consisté à remplacer la question par une question factuelle assortie d'une règle en code :
 
 ```
 demander à jev « grille ou liste ? »          → 0,16  ← la demande n'en dit rien
@@ -53,6 +53,10 @@ faire dire au LLM « combien d'arguments ? »   → code : >= 5 donne une grille
 
 demander à jev « en-tête centré ou scindé ? » → 0,28  ← même problème
 faire dire au LLM « y a-t-il une capture ? »  → code : scindé seulement si oui déterministe
+
+demander à jev « quelle langue est-ce ? »     → 0,76  ← et la réponse était fausse
+détecter l'écriture dans le code              → jev seulement : « demandent-ils
+                                                 une autre langue ? »            séparer
 
 demander à jev « quel thème visuel ? »        → 0,99  ← « avec du peps », « clients financiers » y sont
 on le garde                                                                     jugement
@@ -62,7 +66,7 @@ on le garde                                                                     
 
 | Jugement | Confiance |
 |---|---|
-| Langue du texte (1 sur 9) | 0,66 – 1,00 |
+| Langue demandée (1 sur 9, quand elle est demandée) | 1,00 |
 | Thème visuel (1 sur 6) | 0,98 – 1,00 |
 | Archétype de page (1 sur 6) | 0,62 – 1,00 |
 | Intention de modification (1 sur 6) | 0,98 – 1,00 |
@@ -99,10 +103,12 @@ cp .env.example .env.local   # renseignez JEV_TOKEN et LLM_TOKEN
 
 Les fichiers de `fixtures/` sont de **vraies exécutions enregistrées**, pas des fichiers écrits à la main. Une démo qui tient debout grâce à une sortie inventée que personne ne peut reproduire vaut moins que pas de démo du tout.
 
+Le mode démo permet aussi de modifier, mais pas via Jev : il n'y a pas de clé pour l'appeler. Une liste de mots associe une poignée d'instructions aux résultats que l'interface sait appliquer seule, et c'est pourquoi toute confiance affichée là vaut 1,00. Cette liste est le seul endroit où ajouter une langue d'interface peut casser quelque chose en silence, donc un test y repasse les suggestions du placeholder de chaque langue : quatre locales sont sorties sans cette vérification, et aucune des suggestions que l'application y faisait ne produisait quoi que ce soit.
+
 ## Modifier ensuite
 
 <p align="center">
-  <img src="../docs/images/decisions-fr.jpg" alt="L'éditeur, avec le journal des décisions et le sélecteur de thème" width="820">
+  <img src="../docs/images/decisions-fr-2.jpg" alt="L'éditeur, avec le journal des décisions et le sélecteur de thème" width="820">
 </p>
 
 Chaque jugement rendu par Jev, avec sa confiance et son horodatage. Une modification qui rate se remonte au lieu de rester mystérieuse.
@@ -133,20 +139,35 @@ change le style de la barre     → theme@0,87    theme_target=coral@0,15     bl
 
 **Un seuil n'est pas une constante globale. Il découle du coût de l'erreur.**
 
-## La langue est un jugement, pas une détection
+## La langue, ce sont deux questions et non une
 
-La langue dans laquelle le site est rédigé passe aussi par Jev, dans la même requête que le thème et l'archétype, donc sans aller-retour supplémentaire.
+Demander « dans quelle langue ce site doit-il être écrit ? » ressemble à un seul jugement, et cela en a été un ici pendant un temps. Mesuré sur dix requêtes, ce Choice unique a répondu `zh` à une requête en anglais avec 0.76 de confiance, et a eu raison mais à seulement 0.63 sur une autre. Trois des dix sont revenues sous 0.85.
+
+La confiance basse était le signal : la question en contenait deux, empilées.
+
+| Question | Qui y répond | Comment |
+|---|---|---|
+| Dans quelle écriture cette requête est-elle rédigée ? | Le code | Kana, hangul et han tiennent en trois expressions régulières. L'écriture latine ne peut pas être affinée davantage à partir du texte, c'est donc le locale de l'éditeur qui tranche |
+| Demande-t-elle une langue autre que celle dans laquelle elle est écrite ? | Jev | La réponse est dans la phrase, et seul un lecteur peut la voir |
+
+Séparées ainsi, les deux moitiés sont devenues nettes. Sur onze requêtes, la question sur la demande explicite a séparé ses deux populations à 0.03 contre 0.85 sans en mal lire une seule, et la suivante — « alors laquelle ? » — a répondu aux quatre cas à 1.00.
 
 ```
-我在杭州开了家咖啡店                           → zh @1,00
-我们做数据合规 SaaS，卖给海外客户，要做英文站     → en @1,00   ← décrit en chinois, veut de l'anglais
-A small bakery in Brooklyn                   → en @0,66
-東京で小さなラーメン屋をやっています              → ja @0,99
+我在杭州开了家咖啡店                         → zh  script
+A small bakery in Brooklyn                 → en  locale
+東京で小さなラーメン屋をやっています            → ja  script
+我做外贸的，帮我做个英文站，客户都在北美         → en  request @1.00   ← demandé, pas détecté
 ```
 
-La deuxième ligne est le point essentiel. **La langue dans laquelle vous écrivez n'est pas celle dans laquelle vous voulez qu'on écrive** : quelqu'un décrit son activité en chinois mais a besoin d'un site en anglais pour une clientèle étrangère, et il le dit généralement dans cette même phrase. La détection pure se trompe à chaque fois ; le jugement tombe juste.
+La quatrième ligne reste l'essentiel. **Ce dans quoi vous écrivez n'est pas ce que vous voulez voir écrit** : quelqu'un décrit son activité en chinois mais a besoin d'un site en anglais pour des clients à l'étranger, et il le dit généralement dans cette phrase même. Cette partie est un jugement et reste chez Jev. L'écriture dans laquelle il a tapé, non.
 
-Le `0,66` de la ligne de Brooklyn est également correct : une phrase en anglais qui ne déclare aucune langue cible fait de `en` une inférence et non une instruction, la probabilité doit donc se disperser.
+Simplifié contre traditionnel est la seule distinction que le code ne tente pas : c'est une question de marché et de lexique, pas d'écriture, donc une requête en han reçoit un Choice supplémentaire entre `zh` et `zh-Hant`.
+
+### Décider de la langue ne fait que la moitié du chemin
+
+Le site revenait encore en chinois. Le schéma de champs de la couche de copy est écrit en chinois jusque dans ses décomptes de `字`, et avec la règle de langue placée en préambule, le modèle suivait le schéma plutôt que l'instruction : une requête en français a produit 476 caractères chinois, une en allemand 429. Déplacer la règle après le schéma a corrigé le français mais pas l'allemand. La répéter aussi dans le tour utilisateur a ramené français, allemand, coréen et anglais à zéro.
+
+Trois descriptions de champ réclamaient par ailleurs un site chinois d'elles-mêmes : le `name` d'un membre de l'équipe était spécifié comme « un nom chinois », les prix en `¥`, les chiffres en `万`. Elles suivent désormais la langue du copy, et la devise suit le lieu de l'activité plutôt que la langue, de sorte qu'une page en anglais pour un atelier de Kyoto affiche toujours des yens.
 
 Prend en charge `en` / `zh` / `ja` / `ko` / `es` / `fr` / `de` / `pt` / `zh-Hant`. Les indications de longueur sont pensées pour le chinois, les autres langues reçoivent donc une note de conversion.
 
@@ -187,7 +208,7 @@ En taille, cela ne fait gagner que 16 % (Tailwind n'a jamais été le problème)
 ## Les thèmes sont des données
 
 <p align="center">
-  <img src="../docs/images/themes-fr.jpg" alt="Le même site généré sous les six thèmes" width="820">
+  <img src="../docs/images/themes-fr-2.jpg" alt="Le même site généré sous les six thèmes" width="820">
 </p>
 
 Le même texte généré sous les six thèmes. Changer de thème, c'est modifier une seule prop côté client : aucun appel au modèle, aucune régénération.

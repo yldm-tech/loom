@@ -30,6 +30,8 @@
   "arbitrary": "（任意）",
   "lines": "行",
   "demoBanner": "デモモード：実際に記録した実行を再生しています。JEV_TOKEN と LLM_TOKEN を設定すると実時間生成になります。",
+  "errorTitle": "生成が中断しました",
+  "errorBody": "下のブロックは文章を受け取れませんでした。原因を解消してから再生成してください。",
   "archetypeLabels": {
     "landing": "ランディングページ",
     "local": "店舗ページ",

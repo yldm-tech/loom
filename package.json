@@ -8,11 +8,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "audit:a11y": "node scripts/audit-a11y.mjs"
+    "audit:a11y": "node scripts/audit-a11y.mjs",
+    "record": "node scripts/record-fixture.mjs",
+    "capture": "node scripts/capture-docs.mjs"
   },
   "dependencies": {
     "@json-render/core": "0.21.0",

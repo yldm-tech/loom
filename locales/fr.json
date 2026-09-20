@@ -30,6 +30,8 @@
   "arbitrary": " (au choix)",
   "lines": "lignes",
   "demoBanner": "Mode démo : rejeu d'une exécution réelle enregistrée. Renseignez JEV_TOKEN et LLM_TOKEN pour générer en direct.",
+  "errorTitle": "La génération s'est arrêtée",
+  "errorBody": "Les blocs ci-dessous n'ont jamais reçu leur texte. Corrigez le problème puis relancez.",
   "archetypeLabels": {
     "landing": "Page d'atterrissage",
     "local": "Commerce de proximité",

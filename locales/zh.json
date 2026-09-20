@@ -30,6 +30,8 @@
   "arbitrary": "（任取）",
   "lines": "行",
   "demoBanner": "演示模式：正在回放一段真实录制的运行。配好 JEV_TOKEN 和 LLM_TOKEN 后会改为实时生成。",
+  "errorTitle": "生成中断",
+  "errorBody": "下面这些区块没拿到文案。解决问题后重新生成。",
   "archetypeLabels": {
     "landing": "完整落地页",
     "local": "线下门店页",

@@ -51,6 +51,11 @@ describe("page callbacks", () => {
   it("detects the locale in an effect rather than during render", () => {
     // Reading navigator during render would desync server and client markup.
     expect(SOURCE).toMatch(/useEffect\(\(\) => \{[\s\S]{0,200}detectLocale\(\)/);
-    expect(SOURCE).toMatch(/useState<UiLocale>\("zh"\)/);
+    // It must also match the `lang` the shell ships with, or the first paint
+    // is one language inside a document that claims another.
+    const initial = SOURCE.match(/useState<UiLocale>\("([a-z-]+)"\)/)?.[1];
+    const shell = readFileSync(join(import.meta.dirname, "..", "app/layout.tsx"), "utf8")
+      .match(/<html lang="([a-z-]+)"/)?.[1];
+    expect(initial).toBe(shell);
   });
 });

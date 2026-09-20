@@ -30,6 +30,8 @@
   "arbitrary": " (qualquer)",
   "lines": "linhas",
   "demoBanner": "Modo demo: reproduzindo uma execução real gravada. Configure JEV_TOKEN e LLM_TOKEN para gerar ao vivo.",
+  "errorTitle": "A geração foi interrompida",
+  "errorBody": "Os blocos abaixo nunca receberam seu texto. Resolva o problema e gere de novo.",
   "archetypeLabels": {
     "landing": "Página de destino",
     "local": "Negócio local",

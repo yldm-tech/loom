@@ -73,6 +73,39 @@ export const LANGUAGES: Record<string, string> = {
   "zh-Hant": "繁体中文。用户用繁体描述，或者提到台湾、香港市场时选它。",
 };
 
+export type Script = "han" | "kana" | "hangul" | "latin";
+
+/**
+ * Which writing system the request uses. Kana and Hangul are checked before Han
+ * because Japanese mixes kanji in and Korean occasionally does.
+ */
+export function scriptOf(prompt: string): Script {
+  if (/[\u3040-\u30ff]/.test(prompt)) return "kana";
+  if (/[\uac00-\ud7af]/.test(prompt)) return "hangul";
+  if (/[\u4e00-\u9fff]/.test(prompt)) return "han";
+  return "latin";
+}
+
+/**
+ * The language to write the site in, before any explicit request to the
+ * contrary. This is deliberately not a judgement: asking a model which language
+ * a piece of text is written in blends two questions — what script is this, and
+ * did the author ask for something else — and the blended question answered
+ * English prompts with `zh` at 0.76 confidence. Script is decidable here.
+ *
+ * Latin script cannot be narrowed further by looking at the text, so the
+ * editor's own locale decides; it is the only evidence either layer has.
+ * Simplified versus traditional is a real judgement and stays with Jev.
+ */
+export function defaultLanguage(prompt: string, locale?: string): string {
+  const script = scriptOf(prompt);
+  if (script === "kana") return "ja";
+  if (script === "hangul") return "ko";
+  if (script === "han") return "zh";
+  const tag = locale?.toLowerCase().split("-")[0];
+  return tag && tag !== "zh" && tag !== "ja" && tag !== "ko" && tag in LANGUAGES ? tag : "en";
+}
+
 /**
  * Layer 2 — selection. Each slot is a closed set of mutually exclusive variants,
  * so exactly one wins and probability cannot leak across slots.

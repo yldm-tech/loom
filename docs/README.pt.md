@@ -16,7 +16,7 @@
 Descreva seu negócio em uma frase e receba uma landing page que dá para usar de verdade.
 
 <p align="center">
-  <img src="../docs/images/generate-pt.webp" alt="Blocos sendo preenchidos sobre um esqueleto já tematizado" width="640">
+  <img src="../docs/images/generate-pt-2.webp" alt="Blocos sendo preenchidos sobre um esqueleto já tematizado" width="640">
 </p>
 
 ```
@@ -45,7 +45,7 @@ Este projeto divide as decisões conforme **onde a informação está**:
 
 O critério é simples: **confiança persistentemente baixa significa que você perguntou à parte errada** — ou a entrada não contém a resposta, ou a pergunta não exigia julgamento nenhum.
 
-Esse padrão apareceu três vezes durante o desenvolvimento. Em todas elas a correção foi trocar a pergunta por uma factual somada a uma regra em código:
+Esse padrão apareceu quatro vezes durante o desenvolvimento. Em todas elas a correção foi trocar a pergunta por uma factual somada a uma regra em código:
 
 ```
 perguntar ao jev “grade ou lista?”             → 0,16  ← o pedido não diz nada a respeito
@@ -53,6 +53,9 @@ fazer o LLM informar “quantos diferenciais?”   → código: >= 5 vira grade 
 
 perguntar ao jev “topo centralizado ou dividido?” → 0,28  ← mesmo problema
 fazer o LLM informar “existe captura de tela?”    → código: dividido só se existir determinístico
+
+perguntar ao jev “que idioma é este?”       → 0,76  ← e a resposta estava errada
+detectar a escrita no código                → jev só: “pedem outro idioma?”   dividir
 
 perguntar ao jev “qual tema visual?”           → 0,99  ← “com energia”, “clientes financeiros” estão ali
 fica como está                                                                      julgamento
@@ -62,7 +65,7 @@ fica como está                                                                 
 
 | Julgamento | Confiança |
 |---|---|
-| Idioma do texto (1 de 9) | 0,66 – 1,00 |
+| Idioma pedido (1 de 9, quando é pedido) | 1,00 |
 | Tema visual (1 de 6) | 0,98 – 1,00 |
 | Arquétipo de página (1 de 6) | 0,62 – 1,00 |
 | Intenção de edição (1 de 6) | 0,98 – 1,00 |
@@ -99,10 +102,12 @@ O `JEV_TOKEN` sai do [typesafe.ai](https://typesafe.ai). O `LLM_TOKEN` funciona 
 
 Os arquivos em `fixtures/` são **execuções realmente gravadas**, não escritas à mão. Uma demo apoiada em uma saída inventada que ninguém consegue reproduzir é pior do que não ter demo.
 
+No modo demo também dá para editar, mas não através do Jev: não há chaves para chamá-lo. Uma lista de palavras mapeia um punhado de instruções para resultados que a interface consegue aplicar sozinha, e é por isso que toda confiança relatada ali é 1,00. Essa lista é o único ponto onde acrescentar um idioma de interface pode quebrar algo em silêncio, então um teste devolve a ela as sugestões do placeholder de cada idioma: quatro locales saíram sem essa verificação, e nenhuma das sugestões que a aplicação fazia neles fazia coisa alguma.
+
 ## Editar depois
 
 <p align="center">
-  <img src="../docs/images/decisions-pt.jpg" alt="O editor, com o log de decisões e o seletor de tema" width="820">
+  <img src="../docs/images/decisions-pt-2.jpg" alt="O editor, com o log de decisões e o seletor de tema" width="820">
 </p>
 
 Cada julgamento que o Jev fez, com a confiança e o momento em que chegou. Uma edição que erra dá para rastrear, em vez de virar mistério.
@@ -133,20 +138,35 @@ mude o estilo da barra       → theme@0,87    theme_target=coral@0,15     bloqu
 
 **Um limiar não é uma constante global. Ele decorre do custo de errar.**
 
-## Idioma é julgamento, não detecção
+## Idioma são duas perguntas, não uma
 
-O idioma em que o site é escrito também passa pelo Jev, na mesma requisição do tema e do arquétipo, sem nenhuma ida e volta a mais.
+Perguntar "em que idioma este site deve ser escrito?" parece um único julgamento, e aqui foi um durante algum tempo. Medido em dez pedidos, esse Choice único respondeu `zh` a um pedido em inglês com 0.76 de confiança, e acertou mas com apenas 0.63 em outro. Três dos dez voltaram abaixo de 0.85.
+
+A confiança baixa era o sinal: a pergunta eram duas perguntas empilhadas.
+
+| Pergunta | Quem responde | Como |
+|---|---|---|
+| Em que escrita este pedido está escrito? | Código | Kana, hangul e han são três expressões regulares. A escrita latina não pode ser estreitada mais a partir do texto, então decide o locale do próprio editor |
+| Pede um idioma diferente daquele em que está escrito? | Jev | A resposta está na frase, e só quem lê consegue vê-la |
+
+Separadas assim, as duas metades ficaram nítidas. Em onze pedidos, a pergunta sobre o pedido explícito separou suas duas populações em 0.03 contra 0.85 sem ler nenhuma errada, e a seguinte — "então qual?" — respondeu aos quatro casos com 1.00.
 
 ```
-我在杭州开了家咖啡店                           → zh @1,00
-我们做数据合规 SaaS，卖给海外客户，要做英文站     → en @1,00   ← descrito em chinês, quer em inglês
-A small bakery in Brooklyn                   → en @0,66
-東京で小さなラーメン屋をやっています              → ja @0,99
+我在杭州开了家咖啡店                         → zh  script
+A small bakery in Brooklyn                 → en  locale
+東京で小さなラーメン屋をやっています            → ja  script
+我做外贸的，帮我做个英文站，客户都在北美         → en  request @1.00   ← pedido, não detectado
 ```
 
-A segunda linha é o ponto. **O idioma em que você escreve não é o idioma em que você quer que escrevam**: alguém descreve o negócio em chinês mas precisa de um site em inglês para clientes de fora, e normalmente diz isso na mesma frase. Detecção pura erra sempre aqui; julgamento acerta.
+A quarta linha continua sendo o ponto. **Aquilo em que você escreve não é aquilo que você quer escrito** — alguém descreve o negócio em chinês mas precisa de um site em inglês para clientes no exterior, e normalmente diz isso nessa mesma frase. Essa parte é julgamento e fica com o Jev. Em que escrita digitou, não.
 
-O `0,66` da linha de Brooklyn também está certo: uma frase em inglês que não declara idioma-alvo torna `en` uma inferência, não uma instrução, então a probabilidade deve se espalhar.
+Simplificado contra tradicional é a única divisão que o código não tenta: é uma questão de mercado e de vocabulário, não de escrita, então um pedido em han recebe um Choice adicional entre `zh` e `zh-Hant`.
+
+### Decidir o idioma é só metade
+
+O site continuava voltando em chinês. O schema de campos da camada de copy está escrito em chinês até nas contagens de `字`, e com a regra de idioma no preâmbulo o modelo seguia o schema em vez da instrução: um pedido em francês produziu 476 caracteres chineses e um em alemão, 429. Mover a regra para depois do schema corrigiu o francês e não o alemão. Repeti-la também no turno do usuário levou francês, alemão, coreano e inglês todos a zero.
+
+Além disso, três descrições de campo exigiam por conta própria um site chinês — o `name` de um membro da equipe estava especificado como "um nome chinês", os preços como `¥`, os números em `万`. Agora todas seguem o idioma do copy, e a moeda segue a localização do negócio em vez do idioma, então uma página em inglês para um ateliê de Quioto continua cotando em ienes.
 
 Suporta `en` / `zh` / `ja` / `ko` / `es` / `fr` / `de` / `pt` / `zh-Hant`. As indicações de tamanho foram escritas para o chinês, então os demais idiomas recebem uma nota de conversão.
 
@@ -187,7 +207,7 @@ Em tamanho economiza só 16 % (o Tailwind nunca foi o problema). O ganho real é
 ## Temas são dados
 
 <p align="center">
-  <img src="../docs/images/themes-pt.jpg" alt="O mesmo site gerado nos seis temas" width="820">
+  <img src="../docs/images/themes-pt-2.jpg" alt="O mesmo site gerado nos seis temas" width="820">
 </p>
 
 O mesmo texto gerado sob os seis temas. Trocar de tema é mudar uma prop no cliente: sem chamada ao modelo, sem regeração.

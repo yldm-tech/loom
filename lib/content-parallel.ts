@@ -18,7 +18,7 @@ const MODEL = process.env.LLM_MODEL?.trim() || "claude-haiku-4-5";
 const BASE_URL = (process.env.LLM_BASE_URL?.trim() || "https://api.everyapi.ai/v1").replace(/\/$/, "");
 const ENDPOINT = `${BASE_URL}/chat/completions`;
 
-const LANGUAGE_RULE: Record<string, string> = {
+export const LANGUAGE_RULE: Record<string, string> = {
   zh: "全部用简体中文书写。",
   en: "Write every field in natural English. Do not use Chinese.",
   ja: "すべてのフィールドを自然な日本語で書いてください。中国語は使わないこと。",
@@ -43,10 +43,22 @@ const LENGTH_RULE: Record<string, string> = {
   "zh-Hant": "",
 };
 
-function base(language: string): string {
+/**
+ * The field schema these prompts carry is written in Chinese down to its "字"
+ * counts, and with the language rule up in the preamble the model followed the
+ * schema's language rather than the instruction: on one bakery prompt, French
+ * came back with 476 Chinese characters and German with 429. Moving the rule
+ * after the schema fixed French but not German; repeating it in the user turn
+ * as well brought French, German, Korean and English all to zero.
+ */
+function systemFor(language: string, body: string): string {
   const rule = LANGUAGE_RULE[language] ?? LANGUAGE_RULE.zh;
   const length = LENGTH_RULE[language] ?? "";
-  return `你是网站文案撰写者。只输出一个 JSON 对象，不要围栏、不要解释。${rule}${length}文案要贴合用户描述的具体业务，不要通用模板。不要编造可验证的事实（真实获奖、媒体报道）。`;
+  return `你是网站文案撰写者。只输出一个 JSON 对象，不要围栏、不要解释。文案要贴合用户描述的具体业务，不要通用模板。不要编造可验证的事实（真实获奖、媒体报道）。${body}\n\n${rule}${length}`;
+}
+
+function userFor(language: string, text: string): string {
+  return `${text}\n\n${LANGUAGE_RULE[language] ?? LANGUAGE_RULE.zh}`;
 }
 
 async function call(
@@ -68,18 +80,38 @@ async function call(
         content: `上次输出有问题：${lastProblem}。只输出一个合法 JSON 对象，不要围栏不要解释。`,
       });
     }
-    const response = await fetch(ENDPOINT, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages }),
-      signal,
-      cache: "no-store",
-    });
-    if (!response.ok)
-      throw new Error(`LLM ${response.status}: ${await response.text()}`);
+    let response: Response;
+    try {
+      response = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages }),
+        signal,
+        cache: "no-store",
+      });
+    } catch (error) {
+      // fetch() reports every transport problem as "fetch failed", which tells
+      // the reader nothing. Name the layer, the endpoint and the knob to turn.
+      if (signal.aborted) throw error;
+      throw new Error(
+        `Could not reach the copy model at ${ENDPOINT}. Check LLM_BASE_URL and your network. (${
+          error instanceof Error ? error.message : String(error)
+        })`,
+      );
+    }
+    if (!response.ok) {
+      const body = (await response.text()).slice(0, 200);
+      const hint =
+        response.status === 401 || response.status === 403
+          ? " Check LLM_TOKEN."
+          : response.status === 404
+            ? " Check LLM_BASE_URL and LLM_MODEL."
+            : "";
+      throw new Error(`Copy model returned HTTP ${response.status}.${hint} ${body}`);
+    }
     const body = (await response.json()) as {
       choices?: { message: { content: string } }[];
       usage?: { completion_tokens?: number };
@@ -113,7 +145,9 @@ export function generateIdentity(
 ) {
   return call(
     apiKey,
-    `${base(language)}
+    systemFor(
+      language,
+      `
 字段：{"brand":"品牌名 2-8 字","tagline":"一句话定位 10-18 字","heroTitle":"首屏主标题 8-16 字","heroSubtitle":"首屏副标题 30-50 字","heroBullets":["三条卖点，每条 10-18 字"],"primaryCta":"主按钮 2-6 字","secondaryCta":"次按钮 2-6 字","navLinks":["四个栏目名"],"footerColumns":["四个页脚栏目名"],"footerNote":"页脚一句说明","visualKind":"interface | product | scene | none"}
 
 visualKind 说明这个业务首屏旁边能放什么图，按业务事实回答，不要考虑排版好不好看：
@@ -121,7 +155,8 @@ visualKind 说明这个业务首屏旁边能放什么图，按业务事实回答
 - product：有实物产品照片（零售、硬件、食品、手作）
 - scene：有场景或环境照片（餐饮门店、空间、活动、服务现场）
 - none：没有任何具体视觉物（纯咨询、纯内容、个人主页）`,
-    description,
+    ),
+    userFor(language, description),
     900,
     signal,
   );
@@ -135,7 +170,7 @@ features 的条数按这个业务真实有多少个值得说的卖点来定，3 
 featuresDeep 是同一批卖点里最重要的 2 到 3 个，每条展开讲透。
 如果这个业务的卖点少而深（比如只有两三件事但每件都需要解释），features 就给 3 条；如果卖点多而浅（比如功能清单），就给 5 到 6 条。`,
   commerce: `
-字段：{"pricingTitle":"定价区标题","tiers":[{"name":"档位名","price":"¥数字","period":"每月/永久/每位/每份","features":["3-4 条"],"highlighted":布尔，恰好一档为 true}],"stats":[恰好 4 项 {"value":"数字带单位如 4.2万","label":"2-5 字"}],"logosCaption":"一句话说明下面这排标识是什么","logos":["四个平台或合作方名称"],"comparisonTitle":"对比区标题 6-12 字","comparisonUs":"我们这一列的表头，用品牌名或「我们」","comparisonThem":"对照那一列的表头，比如「传统做法」「其他家」","comparison":[恰好 4 项 {"label":"对比维度 3-6 字","us":"我们这边 8-16 字","them":"对照那边 8-16 字"}],"pricingCta":"价格卡上的按钮文案 2-6 字，比如「选这个」「开始使用」"}
+字段：{"pricingTitle":"定价区标题","tiers":[{"name":"档位名","price":"价格，货币跟着业务所在地走；描述里没提地点时，用文案语言所在市场的货币","period":"每月/永久/每位/每份","features":["3-4 条"],"highlighted":布尔，恰好一档为 true}],"stats":[恰好 4 项 {"value":"数字带单位，单位写法随文案语言","label":"2-5 字"}],"logosCaption":"一句话说明下面这排标识是什么","logos":["四个平台或合作方名称"],"comparisonTitle":"对比区标题 6-12 字","comparisonUs":"我们这一列的表头，用品牌名或「我们」","comparisonThem":"对照那一列的表头，比如「传统做法」「其他家」","comparison":[恰好 4 项 {"label":"对比维度 3-6 字","us":"我们这边 8-16 字","them":"对照那边 8-16 字"}],"pricingCta":"价格卡上的按钮文案 2-6 字，比如「选这个」「开始使用」"}
 
 tiers 的档数按这个业务真实有几种卖法来定，1 到 3 档：
 - 只有一种价格或完全免费 → 1 档
@@ -143,7 +178,7 @@ tiers 的档数按这个业务真实有几种卖法来定，1 到 3 档：
 不适合订阅制的业务（餐饮、零售、服务），tiers 就用套餐 / 规格 / 价位来表达。不要硬凑成三档。
 comparison 写这个业务相对于替代方案的真实差异，对照方要写得公允，不要写成一无是处。`,
   place: `
-字段：{"galleryTitle":"作品/环境展示区标题 6-12 字","galleryCaption":"一句话说明这些展示的是什么","gallery":[恰好 6 项 {"title":"4-10 字的作品或菜品或空间名","note":"10-20 字补充"}],"stepsTitle":"流程区标题 6-12 字","steps":[恰好 3 到 4 步 {"title":"步骤名 4-8 字","body":"25-45 字说明"}],"contactTitle":"联系方式区标题","address":"一个合理的示例地址","hours":"营业或服务时间","phone":"一个明显是示例的电话号码","contactNote":"一句补充说明，比如停车、预约方式","contactLabels":{"address":"「地址」这一栏的标签 2-4 字","hours":"「营业时间」这一栏的标签 2-4 字","phone":"「电话」这一栏的标签 2-4 字"},"teamTitle":"团队介绍标题 6-12 字","team":[恰好 3 位 {"name":"中文姓名","role":"职位 3-8 字","bio":"一句介绍 20-35 字"}]}
+字段：{"galleryTitle":"作品/环境展示区标题 6-12 字","galleryCaption":"一句话说明这些展示的是什么","gallery":[恰好 6 项 {"title":"4-10 字的作品或菜品或空间名","note":"10-20 字补充"}],"stepsTitle":"流程区标题 6-12 字","steps":[恰好 3 到 4 步 {"title":"步骤名 4-8 字","body":"25-45 字说明"}],"contactTitle":"联系方式区标题","address":"一个合理的示例地址","hours":"营业或服务时间","phone":"一个明显是示例的电话号码","contactNote":"一句补充说明，比如停车、预约方式","contactLabels":{"address":"「地址」这一栏的标签 2-4 字","hours":"「营业时间」这一栏的标签 2-4 字","phone":"「电话」这一栏的标签 2-4 字"},"teamTitle":"团队介绍标题 6-12 字","team":[恰好 3 位 {"name":"人名，用文案所用语言里常见的姓名","role":"职位 3-8 字","bio":"一句介绍 20-35 字"}]}
 
 gallery 写这个业务真实会展示的东西：餐饮写菜品、摄影写作品系列、门店写空间。
 steps 写顾客从了解到成交要经历的真实环节，不要写成通用的「咨询-下单-交付」。
@@ -162,7 +197,13 @@ export function generateChunk(
   signal: AbortSignal,
   language = "zh",
 ) {
-  return call(apiKey, base(language) + CHUNK_BODIES[chunk], context, 1300, signal);
+  return call(
+    apiKey,
+    systemFor(language, CHUNK_BODIES[chunk]),
+    userFor(language, context),
+    1300,
+    signal,
+  );
 }
 
 export function contextFrom(description: string, identity: Record<string, unknown>) {

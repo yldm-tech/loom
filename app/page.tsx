@@ -25,7 +25,7 @@ type StepInfo = {
 
 
 export default function Page() {
-  const [locale, setLocale] = useState<UiLocale>("zh");
+  const [locale, setLocale] = useState<UiLocale>("en");
   const t = dict(locale);
   const [prompt, setPrompt] = useState("");
 
@@ -35,6 +35,12 @@ export default function Page() {
     setLocale(detected);
     setPrompt((current) => current || dict(detected).examples[0]!);
   }, []);
+
+  // The shell ships as `en`; keep the attribute honest once the UI switches, so
+  // a screen reader reads the interface in the language it is actually in.
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
   const [spec, setSpec] = useState<Spec | null>(null);
   const [steps, setSteps] = useState<StepInfo[]>([]);
   const [status, setStatus] = useState("");
@@ -42,7 +48,9 @@ export default function Page() {
   const [showTrace, setShowTrace] = useState(true);
   const [plan, setPlan] = useState<string>("");
   const [demo, setDemo] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
   const [theme, setTheme] = useState<string>("forest");
+  const [siteLanguage, setSiteLanguage] = useState<string>("en");
   const [pickedTheme, setPickedTheme] = useState<string>("");
   const [editPrompt, setEditPrompt] = useState("");
   const [editLog, setEditLog] = useState<string[]>([]);
@@ -60,6 +68,7 @@ export default function Page() {
     setSteps([]);
     setSpec(null);
     setPlan("");
+    setFailure(null);
     setStatus(t.sending);
 
     const response = await fetch("/api/generate", {
@@ -90,11 +99,12 @@ export default function Page() {
         const at = `${((event.elapsedMs ?? 0) / 1000).toFixed(1)}s`;
 
         if (event.type === "plan") {
+          setSiteLanguage((event.language as string) ?? "en");
           const optional = Object.entries(event.optional as Record<string, number>)
             .map(([slot, noul]) => `${slot} ${(noul as number).toFixed(2)}`)
             .join("  ");
           setPlan(
-            `${at}  ${t.plan} → ${t.archetypeLabels[event.archetype as keyof typeof t.archetypeLabels] ?? event.archetype}@${(event.confidence ?? 0).toFixed(2)}  ·  ${event.language}  ·  ${t.theme} ${event.theme}@${(event.themeConfidence ?? 0).toFixed(2)}  ·  ${t.required} ${event.required.join(" ")}  ·  ${t.optional} ${optional || t.none}`,
+            `${at}  ${t.plan} → ${t.archetypeLabels[event.archetype as keyof typeof t.archetypeLabels] ?? event.archetype}@${(event.confidence ?? 0).toFixed(2)}  ·  ${event.language}${event.languageSource ? `/${event.languageSource}` : ""}  ·  ${t.theme} ${event.theme}@${(event.themeConfidence ?? 0).toFixed(2)}  ·  ${t.required} ${event.required.join(" ")}  ·  ${t.optional} ${optional || t.none}`,
           );
           setTheme(event.theme);
           setPickedTheme(event.theme);
@@ -126,6 +136,9 @@ export default function Page() {
           // already on screen, not remount and re-animate the whole page.
           if (event.spec) setSpec(event.spec);
         } else if (event.type === "error") {
+          // A half-built page whose skeletons keep pulsing reads as "still
+          // working". Freeze it and say plainly that it stopped.
+          setFailure(event.message);
           setStatus(`${t.error}: ${event.message}`);
         }
       }
@@ -210,7 +223,7 @@ export default function Page() {
   const exportHtml = useCallback(() => {
     const node = previewRef.current?.firstElementChild;
     if (!node) return;
-    const html = buildStandaloneHtml(node, pickedTheme ? prompt.slice(0, 40) : "loom");
+    const html = buildStandaloneHtml(node, pickedTheme ? prompt.slice(0, 40) : "loom", siteLanguage);
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -222,7 +235,7 @@ export default function Page() {
       ...log,
       `${t.exportHtml} · ${(html.length / 1024).toFixed(0)} KB`,
     ]);
-  }, [prompt, pickedTheme, theme, t]);
+  }, [prompt, pickedTheme, theme, siteLanguage, t]);
 
   const exportTsx = useCallback(() => {
     const node = previewRef.current?.firstElementChild;
@@ -285,7 +298,10 @@ export default function Page() {
 
   return (
     <div className="min-h-screen bg-neutral-100 dark:bg-neutral-950">
-      <div className="border-b border-neutral-300 bg-white px-6 py-4 dark:border-neutral-800 dark:bg-neutral-900">
+      <div
+        data-loom="panel"
+        className="border-b border-neutral-300 bg-white px-6 py-4 dark:border-neutral-800 dark:bg-neutral-900"
+      >
         <div className="mx-auto max-w-6xl">
           <div className="flex items-baseline justify-between">
             <h1 className="text-[15px] font-semibold">{t.tagline}</h1>
@@ -330,6 +346,8 @@ export default function Page() {
             />
             <button
               type="submit"
+              data-loom="generate"
+              data-running={running ? "1" : "0"}
               disabled={running}
               className="rounded-lg bg-neutral-900 px-5 py-2 text-[14px] text-white disabled:opacity-40 dark:bg-white dark:text-black"
             >
@@ -368,13 +386,25 @@ export default function Page() {
             </div>
           )}
 
-          {spec && (
+          {failure && (
+            <div
+              className="mt-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-[12px] text-red-900 dark:border-red-800/60 dark:bg-red-950/30 dark:text-red-200"
+              role="alert"
+            >
+              <div className="font-medium">{t.errorTitle}</div>
+              <div className="pt-0.5">{t.errorBody}</div>
+              <div className="pt-1 font-mono text-[11px] opacity-80">{failure}</div>
+            </div>
+          )}
+
+          {spec && !failure && (
             <div className="flex flex-wrap items-center gap-2 pt-3">
               <span className="text-[12px] text-neutral-500">{t.theme}</span>
               {Object.entries(THEMES).map(([key, swatch]) => (
                 <button
                   key={key}
                   type="button"
+                  data-theme-key={key}
                   onClick={() => setTheme(key)}
                   title={swatch.description}
                   className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] transition-colors ${
@@ -418,7 +448,7 @@ export default function Page() {
             </div>
           )}
 
-          {spec && (
+          {spec && !failure && (
             <div className="pt-3">
               <form
                 className="flex gap-2"
@@ -483,6 +513,11 @@ export default function Page() {
           className="overflow-hidden rounded-xl border border-neutral-300 bg-white shadow-sm dark:border-neutral-800"
         >
           {spec ? (
+            <div
+              data-loom="site"
+              lang={siteLanguage}
+              className={failure ? "opacity-60 [&_.animate-pulse]:animate-none" : undefined}
+            >
             <JSONUIProvider
               key={`${renderKey.current}-${theme}`}
               registry={registry}
@@ -490,6 +525,7 @@ export default function Page() {
             >
               <Renderer spec={themedSpec!} registry={registry} />
             </JSONUIProvider>
+            </div>
           ) : (
             <div className="py-32 text-center text-[15px] text-neutral-400">
               {running ? t.picking : t.empty}

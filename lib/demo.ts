@@ -1,5 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
+import { scriptOf } from "./plan";
 
 /**
  * Replay mode for people who have not set up keys yet.
@@ -34,14 +35,15 @@ export async function availableFixtures(): Promise<string[]> {
 function pickFixture(prompt: string, available: string[], locale?: string): string {
   if (locale && available.includes(locale)) return locale;
 
-  const has = (re: RegExp) => re.test(prompt);
-  const order = has(/[가-힯]/)
-    ? ["ko", "en", "zh"]
-    : has(/[぀-ヿ]/)
-      ? ["ja", "en", "zh"]
-      : has(/[一-龥]/)
-        ? ["zh", "en"]
-        : ["en", "zh"];
+  const script = scriptOf(prompt);
+  const order =
+    script === "hangul"
+      ? ["ko", "en", "zh"]
+      : script === "kana"
+        ? ["ja", "en", "zh"]
+        : script === "han"
+          ? ["zh", "en"]
+          : ["en", "zh"];
   return order.find((name) => available.includes(name)) ?? available[0]!;
 }
 
@@ -97,31 +99,59 @@ export async function* replay(
  * Canned edit outcomes, keyed by what the recorded intents actually were. Only
  * the shapes the UI can apply without a model are covered; anything else is
  * reported as unavailable rather than faked.
+ *
+ * Matching is a word list because demo mode has no keys and so cannot ask Jev,
+ * which is the layer that actually understands a request. That makes the list
+ * the one place where adding a UI language can silently break something: the
+ * four languages added after this was written left German, French, Spanish and
+ * Portuguese users watching every suggestion in their own placeholder do
+ * nothing. A test now feeds each locale's `editPlaceholder` suggestions back
+ * through here, so the app cannot propose an edit it will not honour.
  */
+
+/** Written without diacritics, and compared against input stripped the same way. */
+const EDIT_WORDS = {
+  pricing: ["定价", "价格", "料金", "가격", "pricing", "price", "preise", "tarif", "prix", "precio", "preco"],
+  faq: ["faq", "常见问题", "よくある", "자주", "haufige fragen", "questions frequentes", "preguntas frecuentes", "perguntas frequentes"],
+  playful: ["活泼", "明るく", "발랄", "playful", "bright", "lebendig", "lebhaft", "enjou", "desenfadado", "alegre", "animado"],
+  // "sobre" is the natural French word here and a very common Portuguese and
+  // Spanish preposition, so it is left out in favour of unambiguous ones.
+  minimal: ["素", "地味", "차분", "minimal", "plain", "quiet", "schlicht", "epure", "sobrio"],
+  // German drops the e when it inflects: dunkel becomes dunkler, dunkles.
+  dark: ["深色", "暗", "어둡", "dark", "dunkel", "dunkl", "sombre", "oscuro", "escuro"],
+  nav: ["nav", "导航", "내비", "ナビ"],
+} as const;
+
+/** "enjoué" and "enjoue" are the same instruction; so are "preços" and "precos". */
+function fold(text: string): string {
+  return text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+}
+
 export function replayEdit(prompt: string, present: string[], theme: string) {
-  const lower = prompt.toLowerCase();
-  const match = (...needles: string[]) => needles.some((n) => lower.includes(n));
+  const folded = fold(prompt);
+  const match = (group: keyof typeof EDIT_WORDS) =>
+    EDIT_WORDS[group].some((word) => folded.includes(fold(word)));
 
   const removable = (slot: string) => present.includes(slot);
 
-  if (match("定价", "价格", "料金", "가격", "pricing", "price") && removable("pricing")) {
+  if (match("pricing") && removable("pricing")) {
     return { action: "remove", slot: "pricing", confidence: 1, targetConfidence: 1 };
   }
-  if (match("faq", "常见问题", "よくある", "자주")) {
+  if (match("faq")) {
     return removable("faq")
       ? { action: "remove", slot: "faq", confidence: 1, targetConfidence: 1 }
       : { action: "add", slot: "faq", confidence: 1, targetConfidence: 1 };
   }
-  if (match("活泼", "明るく", "발랄", "playful", "bright")) {
+  if (match("playful")) {
     return { action: "theme", theme: "coral", confidence: 1, targetConfidence: 1 };
   }
-  if (match("素", "地味", "차분", "minimal", "plain", "quiet")) {
+  if (match("minimal")) {
     return { action: "theme", theme: "ink", confidence: 1, targetConfidence: 0.94 };
   }
-  if (match("深色", "暗", "어둡", "dark")) {
+  if (match("dark")) {
     return { action: "theme", theme: "terminal", confidence: 1, targetConfidence: 0.9 };
   }
-  if (match("nav", "导航", "内비", "내비", "ナビ")) {
+  if (match("nav")) {
     return {
       action: "restyle",
       slot: "nav",

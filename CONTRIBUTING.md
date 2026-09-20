@@ -73,7 +73,9 @@ Do not write tests that need the network. All of them together run in about thre
 
 ## Fixtures
 
-`fixtures/*.jsonl` are **real recorded runs**, never hand-written. A demo propped up by invented output nobody could reproduce is worse than no demo. To refresh one, run the app with real keys and capture the stream from `/api/generate`.
+`fixtures/*.jsonl` are **real recorded runs**, never hand-written. A demo propped up by invented output nobody could reproduce is worse than no demo.
+
+Start the app with real keys and run `npm run record` (or `npm run record -- fr de` for a subset). The prompts live in `scripts/record-fixture.mjs`, so a recording is reproducible rather than something one person did by hand once. The script refuses to write a run that errored, that came back in a different language than it asked for, or whose copy drifted into another script — three fixtures sat in the repo for a while showing Chinese text on German and French sites because nothing checked.
 
 ## Docs
 
@@ -81,7 +83,11 @@ There are eight READMEs: `README.md` (English, the reference) and `docs/README.{
 
 Substantive changes should land in all of them. If you only read one or two of those languages, change the ones you can and say so in the PR; the rest can follow. **A translation lagging behind is better than a machine-translated one.**
 
-Every one has screenshots in its own language. A test enforces that a translation uses its own set when one exists and the English set otherwise, never a mix — so a new language may ship with the English captures and gain its own later. To record a set, run with live keys to capture a fixture, then screenshot in demo mode with the UI in that locale.
+Every one has screenshots in its own language. A test enforces that a translation uses its own set when one exists and the English set otherwise, never a mix — so a new language may ship with the English captures and gain its own later.
+
+To refresh them, record the fixtures, start a **demo-mode** server (no keys) on port 3300, and run `npm run capture`. It needs `magick`, `cwebp` and `webpmux` on PATH; ffmpeg cannot be used, because the build shipped on macOS decodes WebP but does not encode it.
+
+Filenames carry a generation — `themes-ko-2.jpg`. GitHub caches README images by URL, so re-capturing under the same name can keep serving the old picture. Bump `GEN` in `scripts/capture-docs.mjs`, re-run, and update the `<img src>` in all eight READMEs; a test keeps them on one generation so no reader ends up looking at a different run from everyone else.
 
 Tests also check that all eight share the same heading outline level for level and quote the same measured figures. Decimal separators differ by language and are normalised before comparison, so `0,16` and `0.16` count as the same number.
 

@@ -3,7 +3,9 @@ import {
   LANGUAGES,
   SLOTS,
   SLOT_ORDER,
+  defaultLanguage,
   layoutRules,
+  scriptOf,
   type ArchetypeKey,
   type SlotKey,
 } from "@/lib/plan";
@@ -43,18 +45,32 @@ async function ask(
   signal: AbortSignal,
   state: Record<string, unknown> = {},
 ) {
-  const response = await fetch("https://api.typesafe.ai/v1/systemone", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ state, model: "jev-latest", questions }),
-    signal,
-    cache: "no-store",
-  });
-  if (!response.ok)
-    throw new Error(`TypeSafe ${response.status}: ${await response.text()}`);
+  let response: Response;
+  try {
+    response = await fetch("https://api.typesafe.ai/v1/systemone", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ state, model: "jev-latest", questions }),
+      signal,
+      cache: "no-store",
+    });
+  } catch (error) {
+    if (signal.aborted) throw error;
+    throw new Error(
+      `Could not reach Jev at api.typesafe.ai. Check your network. (${
+        error instanceof Error ? error.message : String(error)
+      })`,
+    );
+  }
+  if (!response.ok) {
+    const body = (await response.text()).slice(0, 200);
+    const hint =
+      response.status === 401 || response.status === 403 ? " Check JEV_TOKEN." : "";
+    throw new Error(`Jev returned HTTP ${response.status}.${hint} ${body}`);
+  }
   return (await response.json()) as {
     answers: Record<string, Answer>;
     usage?: { input_tokens?: number };
@@ -77,15 +93,19 @@ export async function* composePlanned(
   llmKey: string,
   prompt: string,
   signal: AbortSignal,
+  locale?: string,
 ) {
   let inputTokens = 0;
   let outputTokens = 0;
   const started = Date.now();
 
   // Copy generation and planning start together.
-  // The planning round decides the language, so copy generation cannot start
-  // until it lands. It is a sub-second call and everything else still overlaps.
-  let language = "zh";
+  // The planning round can still override the language, so copy generation
+  // cannot start until it lands. It is a sub-second call and everything else
+  // still overlaps.
+  let language = defaultLanguage(prompt, locale);
+  let languageSource: "script" | "locale" | "request" =
+    scriptOf(prompt) === "latin" ? "locale" : "script";
 
   const round1: Record<string, unknown> = {
     archetype: {
@@ -96,15 +116,44 @@ export async function* composePlanned(
       ),
     },
   };
-  round1.language = {
+  // Two narrow questions instead of one blended "which language is this".
+  // Both are speculative: the target is asked unconditionally and read only if
+  // the override lands, which costs one extra question and no extra round.
+  round1.languageOverride = {
+    type: "noul",
+    instructions: {
+      role: "判断请求里是否明确要求网站文案用另一种语言",
+      request: prompt,
+      note: "只看有没有明确的语言要求。用户用某种语言写这段话，本身不算要求。",
+    },
+    criteria: {
+      true: "请求里明确指定了网站要用的语言，且那不是他写这段话所用的语言",
+      false: "请求里没有指定语言，只是在描述业务",
+    },
+  };
+  round1.languageTarget = {
     type: "choice",
     instructions: {
-      role: "判断这个网站的文案应该用哪种语言",
+      role: "假设这个请求明确要求了网站文案的语言，判断要求的是哪一种",
       request: prompt,
-      note: "用户用什么语言描述通常就是答案，但如果他明确说要做外文站，以他说的为准",
+      note: "只看他明确要求的语言，不要看他用什么语言写这段话",
     },
     criteria: LANGUAGES,
   };
+  if (scriptOf(prompt) === "han") {
+    // Which Chinese is a judgement about word choice and market, not script.
+    round1.chineseVariant = {
+      type: "choice",
+      instructions: {
+        role: "判断这个中文站应该用简体还是繁体",
+        request: prompt,
+      },
+      criteria: {
+        zh: LANGUAGES.zh,
+        "zh-Hant": LANGUAGES["zh-Hant"],
+      },
+    };
+  }
   round1.theme = {
     type: "choice",
     instructions: {
@@ -132,8 +181,19 @@ export async function* composePlanned(
   const first = await ask(apiKey, round1, signal);
   inputTokens += first.usage?.input_tokens ?? 0;
 
-  language = first.answers.language?.choice ?? "zh";
-  const languageConfidence = first.answers.language?.confidence ?? null;
+  // Separation between the two populations was 0.03 and 0.85 when measured, so
+  // the exact threshold barely matters; being wrong costs a whole site in the
+  // wrong language either way, so it sits in the middle of the gap.
+  let languageConfidence: number | null = null;
+  const override = first.answers.languageOverride?.noul ?? 0;
+  if (override >= 0.6 && first.answers.languageTarget?.choice) {
+    language = first.answers.languageTarget.choice;
+    languageConfidence = first.answers.languageTarget.confidence ?? null;
+    languageSource = "request";
+  } else if (first.answers.chineseVariant?.choice) {
+    language = first.answers.chineseVariant.choice;
+    languageConfidence = first.answers.chineseVariant.confidence ?? null;
+  }
   const identityPromise = generateIdentity(llmKey, prompt, signal, language);
   const themeKey = first.answers.theme?.choice ?? "forest";
   const themeConfidence = first.answers.theme?.confidence ?? null;
@@ -157,6 +217,7 @@ export async function* composePlanned(
     themeConfidence,
     language,
     languageConfidence,
+    languageSource,
     required: archetype.required,
     optional: wants,
     slots: [...chosen],

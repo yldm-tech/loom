@@ -30,6 +30,8 @@
   "arbitrary": " (beliebig)",
   "lines": "Zeilen",
   "demoBanner": "Demomodus: Ein echter aufgezeichneter Lauf wird abgespielt. Mit JEV_TOKEN und LLM_TOKEN wird live erzeugt.",
+  "errorTitle": "Die Erzeugung wurde abgebrochen",
+  "errorBody": "Die Blöcke unten haben nie ihren Text bekommen. Beheben Sie das Problem und erzeugen Sie erneut.",
   "archetypeLabels": {
     "landing": "Landingpage",
     "local": "Lokales Geschäft",

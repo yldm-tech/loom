@@ -6,7 +6,7 @@ Get it running first, so you know the environment is sound:
 
 ```bash
 npm install
-npm test        # 199 of them, ~1.5s, no network
+npm test        # 250 of them, ~1.5s, no network
 npm run dev     # demo mode; no keys needed
 ```
 
@@ -58,6 +58,14 @@ The `description` field is **the rubric Jev chooses from**. Write what kind of b
 Fetch before you write. Every url, endpoint and command in that table was checked rather than recalled, and checking is what produced most of the caveats — `/r/index.json` is a 404 on beui.dev, `/registry.json` is a 404 on ui.shadcn.com, and Beautiful UI publishes no machine-readable surface at all. `npm run sources` re-runs those checks and exits non-zero if a declared endpoint stops answering; it needs the network, so it stays a script and never becomes a test.
 
 `role` carries more weight than `blocks`. None of the five sources ships a marketing page section, so a source improves a block loom already renders rather than replacing one, and a `summary` written like a block catalogue sends an agent looking for a hero that does not exist. Check the licence in the same pass: one of the five forbids redistributing a substantial part of its collection, which is fine for a site built with it and not fine for anything vendored here.
+
+## Adding an MCP tool
+
+`lib/mcp.ts` only. `scripts/mcp.mjs` is the stdio pump and should not need touching. A tool is one entry in `TOOLS`: a name, a title, a description written for a model deciding whether to call it, a JSON Schema for its arguments, and a `run` returning `ok(payload)` or `badArgument(message)`.
+
+Read the answer out of `lib/plan.ts`, `lib/themes.ts`, `lib/catalog.ts` or `lib/sources.ts` when the call arrives. A tool holding its own copy of the block list goes on answering confidently after the list changes, and the agent on the other end has no way to notice. A test calls every tool the server advertises, so a name added to the list without a handler fails there rather than in front of an agent.
+
+Say what you did not find. An argument the tool does not recognise gets an empty result and an explanation, never a guess, and a fallback is labelled as one — `themeVars()` answers an unknown theme with `forest`, and an agent handed those values unlabelled pastes a green button in believing it asked for `terminal`. The JSON-RPC framing is written out in the same file and stays that way: no dependency was added for any of this, and none should be.
 
 ## On what to ask a model
 

@@ -10,6 +10,7 @@ import { buildStandaloneHtml } from "@/lib/export";
 import { buildReactSource } from "@/lib/export-tsx";
 import { buildRegistryItem } from "@/lib/export-registry";
 import { buildAgentsMd } from "@/lib/export-agents";
+import { buildBundle } from "@/lib/export-bundle";
 import {
   detectLocale,
   dict,
@@ -324,6 +325,28 @@ export default function Page() {
     ]);
   }, [prompt, theme, slots, t]);
 
+  /**
+   * Export every format at once, as one archive.
+   *
+   * Each of the other five exports is a separate click producing a file that says nothing about the other four, and the two most useful to an agent are the two it is least likely to be handed: the registry item that makes the page installable and the brief that explains what the slots are. Bundling removes the choice, so the brief always arrives next to the artefacts it describes. This is the browser-side counterpart of the llms.txt and MCP surfaces lib/sources.ts catalogues in the five libraries — one address that yields everything rather than several that each yield a fragment. What goes in is buildBundle's business, not this callback's.
+   */
+  const exportBundle = useCallback(() => {
+    const node = previewRef.current?.firstElementChild;
+    if (!node || !spec) return;
+    const bytes = buildBundle(node, prompt, theme, slots, spec, siteLanguage);
+    const blob = new Blob([bytes], { type: "application/zip" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "bundle.zip";
+    a.click();
+    URL.revokeObjectURL(url);
+    setEditLog((log) => [
+      ...log,
+      `${t.exportBundle} · ${(bytes.length / 1024).toFixed(0)} KB`,
+    ]);
+  }, [prompt, theme, slots, spec, siteLanguage, t]);
+
   const totalTokens = steps.reduce((sum, step) => sum + (step.inputTokens ?? 0), 0);
 
   // Appearance lives entirely in one prop, so re-theming costs nothing: no
@@ -469,7 +492,8 @@ export default function Page() {
                   )}
                 </button>
               ))}
-              <span className="mx-1 text-neutral-300 dark:text-neutral-700">|</span>
+              {/* A zero-height full-width flex item forces a wrap here, which the divider glyph it replaces could not. Six swatches and six export pills no longer fit on one line, and left to wrap on their own the exports split wherever the swatches happen to end — usually leaving the last one alone on a third line. Breaking between the two groups puts each on a line of its own, and the break reads as the divider did. */}
+              <span className="basis-full" />
               <button
                 type="button"
                 onClick={exportHtml}
@@ -504,6 +528,13 @@ export default function Page() {
                 className="rounded-full border border-neutral-300 px-2.5 py-1 text-[12px] text-neutral-600 hover:border-neutral-600 dark:border-neutral-700 dark:text-neutral-300"
               >
                 {t.exportAgents}
+              </button>
+              <button
+                type="button"
+                onClick={exportBundle}
+                className="rounded-full border border-neutral-300 px-2.5 py-1 text-[12px] text-neutral-600 hover:border-neutral-600 dark:border-neutral-700 dark:text-neutral-300"
+              >
+                {t.exportBundle}
               </button>
             </div>
           )}

@@ -11,6 +11,7 @@
   "exportSpec": "Export spec.json",
   "exportRegistry": "Export site.registry.json",
   "exportAgents": "Export AGENTS.md",
+  "exportBundle": "Export bundle.zip",
   "editPlaceholder": "Change something — \"drop the pricing\", \"make it more playful\"",
   "edit": "Apply",
   "empty": "Pick an example above, or describe your own",

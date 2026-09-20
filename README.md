@@ -177,7 +177,7 @@ The editor UI is a separate matter: eight languages, picked from `navigator.lang
 
 ## Export
 
-Five formats, all derived from **the same rendered result**. There is no second copy of the layout code.
+Six formats, all derived from **the same rendered result**. There is no second copy of the layout code.
 
 | Export | Size | For |
 |---|---|---|
@@ -186,6 +186,7 @@ Five formats, all derived from **the same rendered result**. There is no second 
 | `spec.json` | a few KB | Archive it, or feed another renderer |
 | `site.registry.json` | `Site.tsx`, wrapped | Install the page into a project that already uses shadcn/ui |
 | `AGENTS.md` | a page | Hand the page to a coding agent: tokens, blocks, and where components come from |
+| `bundle.zip` | the other five | Hand the whole thing over at once, with a `CLAUDE.md` pointing at the brief |
 
 ### Site.tsx
 
@@ -227,6 +228,14 @@ The item carries the same `Site.tsx` source; it is not a second rendering of the
 
 A short brief for the coding agent that picks the export up: `spec.json` is the authoritative description of the page, here are the 17 theme tokens with their values, here are the blocks this page actually has, and here are the component sources relevant to those blocks. It is written to be read once before work starts, not as documentation for a person.
 
+### bundle.zip
+
+The other five in one archive, plus a `CLAUDE.md` whose entire content is `@AGENTS.md` — Claude Code looks for that filename and imports what the line points at, so the brief gets read instead of sitting unopened next to the markup. It is a pointer, not a second copy.
+
+Five buttons are five chances to drop a file, and the one that gets dropped is `AGENTS.md`, because it is the only one that does not look like the page. What the receiving agent has then is markup with no account of what may be edited, what the theme contract is, or where better components live.
+
+The zip is written by hand, STORE with no compression — the alternative was a dependency, and the payload is text that gets unzipped once on arrival. Two details are load-bearing. Sizes and CRCs are measured on UTF-8 bytes rather than string length, because the copy is routinely CJK and a length taken off the JavaScript string is a smaller number; the archive then opens in whichever tool ignores the field and fails everywhere else. And the timestamp is fixed rather than read from the clock, so the same page exported twice is byte-identical and a test can say so.
+
 ## Components worth stealing
 
 The workflow is the lazy one — point a coding agent at a good library and let it pick, adapt and paste. `lib/sources.ts` is the table it reads: five libraries, each with its role, licence, install command, the machine-readable endpoints that answered when they were checked, the slots it can improve, and the caveat that bites.
@@ -248,6 +257,32 @@ Every url and endpoint in that table was fetched and checked rather than recalle
 ```bash
 npm run sources   # re-checks each endpoint and reports how many components it still lists
 ```
+
+## Reachable without a browser
+
+That table ranks the five by how much of each one a machine can reach unattended — three publish an `llms.txt`, one runs an MCP server, three install from a CLI. loom, which wrote the table, published none of it: everything it knew about its own blocks, themes and sources was reachable only by a person clicking in a tab. These are the surfaces it was grading others on.
+
+### MCP server
+
+```bash
+claude mcp add loom -- npm run --silent mcp
+```
+
+Five read-only tools: the component source table, the sources for one named block, the 13 blocks with their variants and which archetypes require them, the six themes with the rubric Jev chooses from, and one theme's 17 tokens with their values.
+
+Every answer is read out of `lib/plan.ts`, `lib/themes.ts` and `lib/sources.ts` when the call arrives; nothing is restated in `lib/mcp.ts`. A tool carrying its own copy of the block list keeps answering confidently after the list changes, and the agent on the other end has no way to notice.
+
+The JSON-RPC framing is written out rather than taken from the MCP SDK, because **nothing here added a dependency**. A tools-only server owes a client `initialize`, `tools/list`, `tools/call`, and the discipline of returning nothing at all for `notifications/initialized` — a reply nobody is waiting for puts every later response against the wrong request. `scripts/mcp.mjs` is only the pump: it splits stdin on newlines and keeps the tail of a partial line, because a chunk boundary is not a message boundary and a real client sends the handshake fast enough for two messages to land together.
+
+Two of the answers are deliberately more than a lookup. A block name loom does not have comes back as an empty list *with an explanation*, never a guess, and a real block that no source covers says so — an empty list on its own reads like a failed lookup. An unknown theme name comes back with the fallback palette **labelled as the fallback**: `themeVars()` answers anything it does not recognise with `forest`, which is right for rendering and wrong to hand an agent unlabelled, because it would paste a green button in believing it had asked for `terminal`.
+
+### /llms.txt
+
+The same format three of the five catalogued sources publish, generated per request from `lib/plan.ts`, `lib/themes.ts` and `lib/sources.ts`, so it cannot drift from what the deployment is actually running. A test walks the real tables, so adding a block, a theme or a source without touching `lib/llms.ts` fails rather than ships a document that omits it.
+
+It follows llmstxt.org literally: one H1, a blockquote, prose that contains no heading, then H2 sections in which every line is a link item. That last rule is why the blocks, themes, tokens, exports and sources are prose rather than sections of their own — none of them has a URL, and inventing `/docs/blocks` to satisfy the shape would send an agent to a 404. Other people's endpoints appear as code spans, so every link an agent can follow is one this origin answers.
+
+The origin comes from the request rather than from a build-time constant, since the same build answers on localhost, a preview host and a custom domain, and a baked-in address is the error that only shows up in the one environment nobody tested. The two sections that are real links are `POST /api/generate` and `POST /api/edit`, with their request bodies and the shape of what comes back.
 
 ## Themes are data
 
@@ -301,12 +336,12 @@ The audit needs a running server and `npx playwright install chromium`, so it st
 
 
 ```bash
-npm test          # 199 of them, ~1.5s, no network
+npm test          # 250 of them, ~1.5s, no network
 ```
 
 They cover **the three rules taken back from the model** — selling-point count decides grid vs list, tier count decides single vs comparison, whether there is a UI screenshot decides the hero layout. If any of these drift, the decision quietly goes back to a model that cannot make it, so they are the ones that must not move.
 
-Also covered: readiness gating (an empty array counts as missing, not ready), `asSettled` completion ordering, and the JSX serializer's sharp edges — custom properties need `as CSSProperties`, semicolons inside a gradient are not separators, text containing braces must be wrapped, and the `blk-in` animation class and `<style>` block must not reach the export.
+Also covered: readiness gating (an empty array counts as missing, not ready), `asSettled` completion ordering, and the JSX serializer's sharp edges — custom properties need `as CSSProperties`, semicolons inside a gradient are not separators, text containing braces must be wrapped, and the `blk-in` animation class and `<style>` block must not reach the export. The agent-facing surfaces get the same treatment: `bundle.zip` is read back by a second, deliberately slow zip reader written in the test file rather than by the writer that produced it, `/llms.txt` is parsed against the llmstxt.org shape and checked line by line against the real block, theme and source tables, and the MCP server is driven through the handshake, every tool it advertises, and a series of messages that arrive broken.
 
 Plus structural invariants: every slot an archetype references must exist, required and optional must not overlap, `SLOT_ORDER` must cover every slot exactly once, and every variant must declare the fields it needs.
 
@@ -337,6 +372,9 @@ lib/
   export-tsx.ts        React source export, DOM → JSX
   export-registry.ts   the same source as a shadcn registry item, tokens included
   export-agents.ts     AGENTS.md: spec, tokens, blocks, and where components come from
+  export-bundle.ts     all five exports plus a CLAUDE.md, zipped by hand
+  llms.ts              /llms.txt, built from plan.ts, themes.ts and sources.ts
+  mcp.ts               the five MCP tools and the JSON-RPC framing, pure and synchronous
   i18n.ts              UI language, reads locales/*.json
   sources.ts           five component libraries an agent can pull from, with roles and caveats
   *.test.ts            pure-logic tests, no network
@@ -345,8 +383,15 @@ locales/
 app/
   page.tsx             the editor, stream consumption, client-side retheme/restyle
   registry.tsx         what blocks look like, all via CSS variables
+  llms.txt/            the /llms.txt route
   api/generate         generation
   api/edit             edits
+scripts/
+  mcp.mjs              stdio pump for the MCP server; the protocol itself is in lib/mcp.ts
+  sources.mjs          re-checks every url and endpoint in sources.ts
+  record-fixture.mjs   records real runs into fixtures/
+  capture-docs.mjs     the README screenshots and recordings
+  audit-a11y.mjs       axe-core against a running demo-mode server
 ```
 
 ## Known limits
@@ -356,10 +401,11 @@ app/
 - **13 block types**, still missing a contact form, video and maps. `Gallery` renders tinted placeholder tiles with captions; it does not generate images.
 - **`Site.tsx` is one flat stretch of JSX**, not a split component tree. It compiles and it is editable, but long-term maintenance means splitting it yourself.
 - **Copy quality follows the model.** A stronger one is noticeably better, and noticeably slower.
+- **The MCP server answers questions about loom; it does not drive it.** The five tools read the block, theme and source tables. Generating or editing a page still means posting to `/api/generate` and `/api/edit`, or opening the editor.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Adding a block, a theme, a UI language or a component source each has a short, established path.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Adding a block, a theme, a UI language, a component source or an MCP tool each has a short, established path.
 
 ## Star History
 

@@ -174,7 +174,7 @@ La interfaz del editor es otra cosa: ocho idiomas, elegidos a partir de `navigat
 
 ## Exportación
 
-Cinco formatos, todos derivados **del mismo resultado renderizado**. No hay una segunda copia del código de composición.
+Seis formatos, todos derivados **del mismo resultado renderizado**. No hay una segunda copia del código de composición.
 
 | Exportación | Tamaño | Para |
 |---|---|---|
@@ -183,6 +183,7 @@ Cinco formatos, todos derivados **del mismo resultado renderizado**. No hay una 
 | `spec.json` | unos pocos KB | Archivarlo, o alimentar otro renderizador |
 | `site.registry.json` | `Site.tsx`, envuelto | Instalar la página en un proyecto que ya use shadcn/ui |
 | `AGENTS.md` | una página | Entregarle la página a un agente de código: tokens, bloques y de dónde salen los componentes |
+| `bundle.zip` | los otros cinco | Entregarlo todo de una vez, con un `CLAUDE.md` que apunta al informe |
 
 ### Site.tsx
 
@@ -224,6 +225,14 @@ El elemento lleva el mismo código de `Site.tsx`; no es un segundo renderizado d
 
 Un informe breve para el agente de código que recoge la exportación: `spec.json` es la descripción autorizada de la página, estos son los 17 tokens del tema con sus valores, estos son los bloques que la página tiene de verdad, y estas son las fuentes de componentes relevantes para esos bloques. Está escrito para leerse una vez antes de empezar, no como documentación para una persona.
 
+### bundle.zip
+
+Los otros cinco en un solo archivo comprimido, más un `CLAUDE.md` cuyo contenido entero es `@AGENTS.md`: Claude Code busca ese nombre de archivo e importa aquello a lo que apunta la línea, así que el informe se lee en vez de quedarse sin abrir junto al marcado. Es un puntero, no una segunda copia.
+
+Cinco botones son cinco ocasiones de perder un archivo, y el que se pierde es `AGENTS.md`, porque es el único de los cinco que no se parece a la página. Lo que le queda entonces al agente que lo recibe es marcado sin ninguna explicación de qué se puede editar, cuál es el contrato del tema o dónde hay componentes mejores.
+
+El zip está escrito a mano, con STORE y sin compresión: la alternativa era una dependencia, y la carga es texto que se descomprime una sola vez al llegar. Hay dos detalles que sostienen todo lo demás. Los tamaños y los CRC se miden sobre bytes UTF-8 y no sobre la longitud de la cadena, porque el texto lleva CJK con frecuencia y una longitud tomada de la cadena de JavaScript da un número menor; el archivo resultante abre en la herramienta que ignora ese campo y falla en todas las demás. Y la marca de tiempo es fija en lugar de leerse del reloj, así que exportar dos veces la misma página da bytes idénticos y una prueba puede afirmarlo.
+
 ## Componentes que vale la pena robar
 
 El método es el perezoso: señalarle una buena biblioteca a un agente de código y dejar que elija, adapte y pegue. `lib/sources.ts` es la tabla que lee: cinco bibliotecas, cada una con su papel, su licencia, su comando de instalación, los endpoints legibles por máquina que respondieron cuando se comprobaron, los slots que puede mejorar y la advertencia que muerde.
@@ -245,6 +254,32 @@ Cada url y cada endpoint de esa tabla se obtuvieron y comprobaron en vez de reco
 ```bash
 npm run sources   # vuelve a pedir cada endpoint e informa de cuántos componentes sigue listando
 ```
+
+## Alcanzable sin navegador
+
+Esa tabla ordena las cinco por cuánto de cada una puede alcanzar una máquina sin que nadie la asista: tres publican un `llms.txt`, una levanta un servidor MCP, tres se instalan por CLI. loom, que escribió la tabla, no publicaba nada de eso: todo lo que sabía sobre sus propios bloques, temas y fuentes solo era alcanzable si una persona hacía clic en una pestaña. Estas son las superficies con las que estaba calificando a las demás.
+
+### Servidor MCP
+
+```bash
+claude mcp add loom -- npm run --silent mcp
+```
+
+Cinco herramientas, todas de solo lectura: la tabla de fuentes de componentes, las fuentes que sirven para un bloque concreto, los 13 bloques con sus variantes y qué arquetipos los exigen, los seis temas con el criterio que Jev usa para elegir, y los 17 tokens de un tema con sus valores.
+
+Cada respuesta se lee de `lib/plan.ts`, `lib/themes.ts` y `lib/sources.ts` en el momento en que llega la llamada; en `lib/mcp.ts` no se repite ninguna. Una herramienta que lleva su propia copia de la lista de bloques sigue respondiendo con aplomo después de que la lista cambie, y el agente del otro lado no tiene forma de notarlo.
+
+El armazón JSON-RPC está escrito a mano en vez de tomado del SDK de MCP, porque **aquí no se añadió ninguna dependencia**. Un servidor que solo ofrece herramientas le debe al cliente `initialize`, `tools/list`, `tools/call` y la disciplina de no responder absolutamente nada a `notifications/initialized`: una respuesta que nadie espera deja todas las siguientes emparejadas con la petición equivocada. `scripts/mcp.mjs` es solo la bomba: parte la entrada estándar por saltos de línea y guarda la cola de una línea incompleta, porque el límite de un trozo no es el límite de un mensaje y un cliente real manda el saludo lo bastante rápido como para que dos mensajes lleguen juntos.
+
+Dos de las respuestas son deliberadamente más que una consulta. Un nombre de bloque que loom no tiene vuelve como una lista vacía *con una explicación*, nunca como una suposición, y un bloque real al que no le corresponde ninguna fuente lo dice: una lista vacía a secas se lee como una consulta fallida. Un nombre de tema desconocido vuelve con la paleta de reserva **etiquetada como tal**: `themeVars()` responde con `forest` a todo lo que no reconoce, lo cual es correcto para renderizar y erróneo para entregárselo a un agente sin avisar, porque pegaría un botón verde creyendo que había pedido `terminal`.
+
+### /llms.txt
+
+El mismo formato que publican tres de las cinco fuentes catalogadas, generado en cada petición a partir de `lib/plan.ts`, `lib/themes.ts` y `lib/sources.ts`, de modo que no puede desviarse de lo que el despliegue está ejecutando de verdad. Una prueba recorre las tablas reales, así que añadir un bloque, un tema o una fuente sin tocar `lib/llms.ts` falla en lugar de publicar un documento que los omite.
+
+Sigue llmstxt.org al pie de la letra: un H1, una cita, prosa que no contiene ningún encabezado, y luego secciones H2 en las que cada línea es un elemento de enlace. Esa última regla es la razón de que los bloques, los temas, los tokens, las exportaciones y las fuentes vayan en prosa y no en secciones propias: ninguno tiene URL, e inventar `/docs/blocks` para cumplir con la forma mandaría a un agente a un 404. Los endpoints ajenos aparecen como fragmentos de código, así que todo enlace que un agente pueda seguir es uno que este origen responde.
+
+El origen se lee de la petición y no de una constante de compilación, porque el mismo build responde en localhost, en un host de vista previa y en un dominio propio, y una dirección incrustada es el error que solo aparece en el único entorno que nadie probó. Las dos secciones que sí son enlaces son `POST /api/generate` y `POST /api/edit`, con sus cuerpos de petición y la forma de lo que devuelven.
 
 ## Los temas son datos
 
@@ -297,12 +332,12 @@ La auditoría necesita el servidor en marcha y `npx playwright install chromium`
 
 
 ```bash
-npm test          # 199, unos 1,5 s, sin red
+npm test          # 250, unos 1,5 s, sin red
 ```
 
 Cubren **las tres reglas recuperadas del modelo**: el número de argumentos decide rejilla o lista, el número de planes decide tarjeta única o comparativa, y la existencia de una captura de interfaz decide la composición de la portada. Si alguna se desvía, la decisión vuelve en silencio a un modelo que no puede tomarla, así que son las que no deben moverse.
 
-También se cubren: el control de disponibilidad (un array vacío cuenta como ausente, no como listo), el orden de finalización de `asSettled`, y las aristas del serializador de JSX —las propiedades personalizadas necesitan `as CSSProperties`, los punto y coma dentro de un degradado no son separadores, el texto con llaves debe envolverse, y ni la clase de animación `blk-in` ni el bloque `<style>` pueden llegar a la exportación—.
+También se cubren: el control de disponibilidad (un array vacío cuenta como ausente, no como listo), el orden de finalización de `asSettled`, y las aristas del serializador de JSX —las propiedades personalizadas necesitan `as CSSProperties`, los punto y coma dentro de un degradado no son separadores, el texto con llaves debe envolverse, y ni la clase de animación `blk-in` ni el bloque `<style>` pueden llegar a la exportación—. Las superficies dirigidas a agentes reciben el mismo trato: `bundle.zip` se vuelve a leer con un segundo lector de zip, deliberadamente lento, escrito en el propio archivo de pruebas y no con el escritor que lo produjo; `/llms.txt` se analiza contra la forma de llmstxt.org y se coteja línea a línea con las tablas reales de bloques, temas y fuentes; y al servidor MCP se le hace pasar por el saludo, por todas las herramientas que anuncia y por una serie de mensajes que llegan rotos.
 
 Además, invariantes estructurales: cada slot que referencia un arquetipo debe existir, obligatorios y opcionales no pueden solaparse, `SLOT_ORDER` debe cubrir cada slot exactamente una vez, y cada variante debe declarar los campos que necesita.
 
@@ -333,6 +368,9 @@ lib/
   export-tsx.ts        exportación de fuente React, DOM → JSX
   export-registry.ts   el mismo código como elemento de registro shadcn, con los tokens
   export-agents.ts     AGENTS.md: spec, tokens, bloques y de dónde salen los componentes
+  export-bundle.ts     las cinco exportaciones más un CLAUDE.md, comprimidas a mano
+  llms.ts              /llms.txt, generado desde plan.ts, themes.ts y sources.ts
+  mcp.ts               las cinco herramientas MCP y el armazón JSON-RPC, puro y síncrono
   i18n.ts              idioma de la interfaz, lee locales/*.json
   demo.ts              reproduce fixtures/ cuando no hay claves
   sources.ts           cinco bibliotecas de componentes de las que puede tirar un agente, con papeles y advertencias
@@ -344,8 +382,15 @@ fixtures/
 app/
   page.tsx             el editor, consumo del stream, cambio de tema y variante en cliente
   registry.tsx         el aspecto de cada bloque, todo mediante variables CSS
+  llms.txt/            la ruta /llms.txt
   api/generate         generación
   api/edit             ediciones
+scripts/
+  mcp.mjs              bomba de stdio del servidor MCP; el protocolo está en lib/mcp.ts
+  sources.mjs          vuelve a comprobar cada url y endpoint de sources.ts
+  record-fixture.mjs   graba ejecuciones reales en fixtures/
+  capture-docs.mjs     las capturas y grabaciones del README
+  audit-a11y.mjs       axe-core contra un servidor en modo demo
 ```
 
 ## Límites conocidos
@@ -355,10 +400,11 @@ app/
 - **13 tipos de bloque**, todavía faltan formulario de contacto, vídeo y mapas. `Gallery` dibuja recuadros de color con pie de texto; no genera imágenes.
 - **`Site.tsx` es un único tramo plano de JSX**, no un árbol de componentes ya separado. Compila y se puede editar, pero mantenerlo a largo plazo implica trocearlo uno mismo.
 - **La calidad del texto sigue al modelo.** Uno más potente se nota bastante, y también se nota que es más lento.
+- **El servidor MCP responde preguntas sobre loom; no lo maneja.** Las cinco herramientas leen las tablas de bloques, temas y fuentes. Generar o editar una página sigue pasando por `/api/generate` y `/api/edit`, o por abrir el editor.
 
 ## Contribuir
 
-Ver [CONTRIBUTING.md](../CONTRIBUTING.md). Añadir un bloque, un tema, un idioma de interfaz o una fuente de componentes tiene cada uno un camino corto y establecido.
+Ver [CONTRIBUTING.md](../CONTRIBUTING.md). Añadir un bloque, un tema, un idioma de interfaz, una fuente de componentes o una herramienta MCP tiene cada uno un camino corto y establecido.
 
 ## Star History
 

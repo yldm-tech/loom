@@ -11,6 +11,7 @@
   "exportSpec": "spec.json 내보내기",
   "exportRegistry": "site.registry.json 내보내기",
   "exportAgents": "AGENTS.md 내보내기",
+  "exportBundle": "bundle.zip 내보내기",
   "editPlaceholder": "무엇을 바꿀까요? 예: \"가격표 빼줘\", \"더 발랄하게\"",
   "edit": "적용",
   "empty": "위 예시를 고르거나 직접 설명해 주세요",

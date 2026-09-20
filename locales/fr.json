@@ -11,6 +11,7 @@
   "exportSpec": "Exporter spec.json",
   "exportRegistry": "Exporter site.registry.json",
   "exportAgents": "Exporter AGENTS.md",
+  "exportBundle": "Exporter bundle.zip",
   "editPlaceholder": "Changez quelque chose — « enlève les tarifs », « rends-le plus enjoué »",
   "edit": "Appliquer",
   "empty": "Choisissez un exemple ci-dessus, ou décrivez le vôtre",

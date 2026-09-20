@@ -11,6 +11,7 @@
   "exportSpec": "导出 spec.json",
   "exportRegistry": "导出 site.registry.json",
   "exportAgents": "导出 AGENTS.md",
+  "exportBundle": "导出 bundle.zip",
   "editPlaceholder": "改点什么？比如「不要定价了」「换个更活泼的配色」",
   "edit": "修改",
   "empty": "点上面一个例子，或者自己描述一个网站",

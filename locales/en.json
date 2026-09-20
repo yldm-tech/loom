@@ -30,6 +30,22 @@
   "arbitrary": " (any)",
   "lines": "lines",
   "demoBanner": "Demo mode: replaying a real recorded run. Set JEV_TOKEN and LLM_TOKEN to generate live.",
+  "archetypeLabels": {
+    "landing": "Landing page",
+    "local": "Local business",
+    "technical": "Technical detail",
+    "pricing": "Pricing page",
+    "oss": "Open-source home",
+    "minimal": "Minimal one-pager"
+  },
+  "themeLabels": {
+    "forest": "Forest",
+    "corporate": "Corporate",
+    "warm": "Terracotta",
+    "ink": "Ink",
+    "terminal": "Terminal",
+    "coral": "Coral"
+  },
   "examples": [
     "A specialty coffee shop in Brooklyn, pour-over only, we also sell beans",
     "Enterprise data compliance SaaS for financial institutions, three pricing tiers",

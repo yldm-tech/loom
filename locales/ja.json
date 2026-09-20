@@ -30,6 +30,22 @@
   "arbitrary": "（任意）",
   "lines": "行",
   "demoBanner": "デモモード：実際に記録した実行を再生しています。JEV_TOKEN と LLM_TOKEN を設定すると実時間生成になります。",
+  "archetypeLabels": {
+    "landing": "ランディングページ",
+    "local": "店舗ページ",
+    "technical": "技術詳細ページ",
+    "pricing": "料金ページ",
+    "oss": "OSS トップ",
+    "minimal": "最小一枚もの"
+  },
+  "themeLabels": {
+    "forest": "フォレスト",
+    "corporate": "コーポレート",
+    "warm": "テラコッタ",
+    "ink": "墨",
+    "terminal": "ターミナル",
+    "coral": "コーラル"
+  },
   "examples": [
     "東京で小さなコーヒースタンドをやっています。ハンドドリップ専門で豆も売ります",
     "金融機関向けのデータコンプライアンス SaaS です。料金は三段階にしたい",

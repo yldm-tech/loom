@@ -74,6 +74,20 @@ describe("READMEs", () => {
     }
   });
 
+  it("ships no image nothing references", () => {
+    // An orphan in docs/images/ is dead weight that still costs clone size.
+    const { readdirSync } = require("node:fs") as typeof import("node:fs");
+    const onDisk = readdirSync(join(ROOT, "docs", "images"));
+    const referenced = new Set(
+      Object.values(texts).flatMap((text) =>
+        [...text.matchAll(/<img[^>]+src="[^"]*?([\w.-]+\.(?:png|jpg|gif))"/g)].map((m) => m[1]!),
+      ),
+    );
+    for (const file of onDisk) {
+      expect(referenced.has(file), `docs/images/${file} is never referenced`).toBe(true);
+    }
+  });
+
   it("embeds the same set of images everywhere", () => {
     const names = (text: string) =>
       [...text.matchAll(/<img[^>]+src="[^"]*?([\w.-]+\.(?:png|jpg|gif))"/g)]

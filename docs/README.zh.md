@@ -102,6 +102,13 @@ cp .env.example .env.local   # 填 JEV_TOKEN 和 LLM_TOKEN
 
 ## 能改什么
 
+<p align="center">
+  <img src="../docs/images/editor.jpg" alt="The editor, with the decision log and theme picker" width="820">
+</p>
+
+决策日志把 jev 选了什么、有多确定都摊开，所以改错了能查，而不是一团迷雾。
+
+
 生成完之后直接用大白话改，每次一个请求、200–400ms、**不重新生成任何文案**：
 
 | 你说 | 结果 |

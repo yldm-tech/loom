@@ -102,6 +102,13 @@ cp .env.example .env.local   # JEV_TOKEN と LLM_TOKEN を記入
 
 ## 生成後の修正
 
+<p align="center">
+  <img src="../docs/images/editor.jpg" alt="The editor, with the decision log and theme picker" width="820">
+</p>
+
+判断ログに Jev が何をどれだけの確信で選んだかが出るので、修正が外れても原因を追えます。
+
+
 普通の言葉で指示します。1 リクエスト、200–400 ms、**文章は一切再生成しません**。
 
 | 入力 | 結果 |

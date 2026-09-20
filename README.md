@@ -102,6 +102,13 @@ The files under `fixtures/` are **actual recorded runs**, not hand-written. A de
 
 ## Editing afterwards
 
+<p align="center">
+  <img src="docs/images/editor.jpg" alt="The editor, with the decision log and theme picker" width="820">
+</p>
+
+The decision log shows what Jev chose and how sure it was, so an edit that misfires is traceable rather than mysterious.
+
+
 Say what you want in plain language. One request, 200–400 ms, and **no copy is regenerated**:
 
 | You say | Result |

@@ -94,7 +94,7 @@ export default function Page() {
             .map(([slot, noul]) => `${slot} ${(noul as number).toFixed(2)}`)
             .join("  ");
           setPlan(
-            `${at}  ${t.plan} → ${event.archetypeLabel}@${(event.confidence ?? 0).toFixed(2)}  ·  ${event.language}  ·  ${t.theme} ${event.theme}@${(event.themeConfidence ?? 0).toFixed(2)}  ·  ${t.required} ${event.required.join(" ")}  ·  ${t.optional} ${optional || t.none}`,
+            `${at}  ${t.plan} → ${t.archetypeLabels[event.archetype as keyof typeof t.archetypeLabels] ?? event.archetype}@${(event.confidence ?? 0).toFixed(2)}  ·  ${event.language}  ·  ${t.theme} ${event.theme}@${(event.themeConfidence ?? 0).toFixed(2)}  ·  ${t.required} ${event.required.join(" ")}  ·  ${t.optional} ${optional || t.none}`,
           );
           setTheme(event.theme);
           setPickedTheme(event.theme);
@@ -131,7 +131,7 @@ export default function Page() {
       }
     }
     setRunning(false);
-  }, []);
+  }, [t]);
 
   const applyEdit = useCallback(async () => {
     const request = editPrompt.trim();
@@ -200,7 +200,7 @@ export default function Page() {
         } as Spec;
       });
     }
-  }, [editPrompt, spec, slots, theme]);
+  }, [editPrompt, spec, slots, theme, t]);
 
   /**
    * Export the rendered result as one self-contained file: the block markup
@@ -222,7 +222,7 @@ export default function Page() {
       ...log,
       `${t.exportHtml} · ${(html.length / 1024).toFixed(0)} KB`,
     ]);
-  }, [prompt, pickedTheme, theme]);
+  }, [prompt, pickedTheme, theme, t]);
 
   const exportTsx = useCallback(() => {
     const node = previewRef.current?.firstElementChild;
@@ -239,7 +239,7 @@ export default function Page() {
       ...log,
       `${t.exportTsx} · ${(source.length / 1024).toFixed(0)} KB · ${source.split("\n").length} ${t.lines}`,
     ]);
-  }, [prompt]);
+  }, [prompt, t]);
 
   const exportSpec = useCallback(() => {
     if (!spec) return;
@@ -371,12 +371,12 @@ export default function Page() {
           {spec && (
             <div className="flex flex-wrap items-center gap-2 pt-3">
               <span className="text-[12px] text-neutral-500">{t.theme}</span>
-              {Object.entries(THEMES).map(([key, t]) => (
+              {Object.entries(THEMES).map(([key, swatch]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setTheme(key)}
-                  title={t.description}
+                  title={swatch.description}
                   className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] transition-colors ${
                     theme === key
                       ? "border-neutral-900 dark:border-white"
@@ -385,9 +385,9 @@ export default function Page() {
                 >
                   <span
                     className="h-3 w-3 rounded-full"
-                    style={{ background: t.tokens.accent, outline: `1px solid ${t.tokens.border}` }}
+                    style={{ background: swatch.tokens.accent, outline: `1px solid ${swatch.tokens.border}` }}
                   />
-                  {t.label}
+                  {t.themeLabels[key as keyof typeof t.themeLabels] ?? key}
                   {pickedTheme === key && (
                     <span className="text-[10px] text-emerald-600 dark:text-emerald-400">jev</span>
                   )}

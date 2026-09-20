@@ -1,5 +1,6 @@
 import {
   ARCHETYPES,
+  LANGUAGES,
   SLOTS,
   SLOT_ORDER,
   layoutRules,
@@ -82,7 +83,9 @@ export async function* composePlanned(
   const started = Date.now();
 
   // Copy generation and planning start together.
-  const identityPromise = generateIdentity(llmKey, prompt, signal);
+  // The planning round decides the language, so copy generation cannot start
+  // until it lands. It is a sub-second call and everything else still overlaps.
+  let language = "zh";
 
   const round1: Record<string, unknown> = {
     archetype: {
@@ -92,6 +95,15 @@ export async function* composePlanned(
         Object.entries(ARCHETYPES).map(([key, a]) => [key, a.description]),
       ),
     },
+  };
+  round1.language = {
+    type: "choice",
+    instructions: {
+      role: "判断这个网站的文案应该用哪种语言",
+      request: prompt,
+      note: "用户用什么语言描述通常就是答案，但如果他明确说要做外文站，以他说的为准",
+    },
+    criteria: LANGUAGES,
   };
   round1.theme = {
     type: "choice",
@@ -120,6 +132,9 @@ export async function* composePlanned(
   const first = await ask(apiKey, round1, signal);
   inputTokens += first.usage?.input_tokens ?? 0;
 
+  language = first.answers.language?.choice ?? "zh";
+  const languageConfidence = first.answers.language?.confidence ?? null;
+  const identityPromise = generateIdentity(llmKey, prompt, signal, language);
   const themeKey = first.answers.theme?.choice ?? "forest";
   const themeConfidence = first.answers.theme?.confidence ?? null;
   const archetypeKey = (first.answers.archetype?.choice ?? "landing") as ArchetypeKey;
@@ -140,6 +155,8 @@ export async function* composePlanned(
     confidence: first.answers.archetype?.confidence ?? null,
     theme: themeKey,
     themeConfidence,
+    language,
+    languageConfidence,
     required: archetype.required,
     optional: wants,
     slots: [...chosen],
@@ -270,7 +287,10 @@ export async function* composePlanned(
     const context = contextFrom(prompt, content as Record<string, unknown>);
     const names: ChunkName[] = ["features", "commerce", "social", "place"];
     const jobs = names.map((name) =>
-      generateChunk(llmKey, name, context, signal).then((result) => ({ name, result })),
+      generateChunk(llmKey, name, context, signal, language).then((result) => ({
+        name,
+        result,
+      })),
     );
     for await (const { name, result } of asSettled(jobs)) {
       outputTokens += result.outputTokens;

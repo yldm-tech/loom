@@ -18,8 +18,26 @@ const MODEL = process.env.LLM_MODEL?.trim() || "claude-haiku-4-5";
 const BASE_URL = (process.env.LLM_BASE_URL?.trim() || "https://api.everyapi.ai/v1").replace(/\/$/, "");
 const ENDPOINT = `${BASE_URL}/chat/completions`;
 
-const BASE =
-  "你是网站文案撰写者。只输出一个 JSON 对象，不要围栏、不要解释。全部中文。文案要贴合用户描述的具体业务，不要通用模板。不要编造可验证的事实（真实获奖、媒体报道）。";
+const LANGUAGE_RULE: Record<string, string> = {
+  zh: "全部用简体中文书写。",
+  en: "Write every field in natural English. Do not use Chinese.",
+  ja: "すべてのフィールドを自然な日本語で書いてください。中国語は使わないこと。",
+  "zh-Hant": "全部用繁體中文書寫，用詞遵循台灣用法。",
+};
+
+/** Field-length hints are written for Chinese; other languages need room. */
+const LENGTH_RULE: Record<string, string> = {
+  zh: "",
+  en: "字数限制是按中文字数写的；写英文时按同等信息量换算，通常是字符数的两到三倍。",
+  ja: "字数制限は中国語基準です。日本語では同等の情報量になるよう調整してください。",
+  "zh-Hant": "",
+};
+
+function base(language: string): string {
+  const rule = LANGUAGE_RULE[language] ?? LANGUAGE_RULE.zh;
+  const length = LENGTH_RULE[language] ?? "";
+  return `你是网站文案撰写者。只输出一个 JSON 对象，不要围栏、不要解释。${rule}${length}文案要贴合用户描述的具体业务，不要通用模板。不要编造可验证的事实（真实获奖、媒体报道）。`;
+}
 
 async function call(
   apiKey: string,
@@ -81,10 +99,11 @@ export function generateIdentity(
   apiKey: string,
   description: string,
   signal: AbortSignal,
+  language = "zh",
 ) {
   return call(
     apiKey,
-    `${BASE}
+    `${base(language)}
 字段：{"brand":"品牌名 2-8 字","tagline":"一句话定位 10-18 字","heroTitle":"首屏主标题 8-16 字","heroSubtitle":"首屏副标题 30-50 字","heroBullets":["三条卖点，每条 10-18 字"],"primaryCta":"主按钮 2-6 字","secondaryCta":"次按钮 2-6 字","navLinks":["四个栏目名"],"footerColumns":["四个页脚栏目名"],"footerNote":"页脚一句说明","visualKind":"interface | product | scene | none"}
 
 visualKind 说明这个业务首屏旁边能放什么图，按业务事实回答，不要考虑排版好不好看：
@@ -98,14 +117,14 @@ visualKind 说明这个业务首屏旁边能放什么图，按业务事实回答
   );
 }
 
-export const CHUNKS = {
-  features: `${BASE}
+const CHUNK_BODIES = {
+  features: `
 字段：{"featuresTitle":"功能区标题 6-12 字","features":[{"icon":"单字符符号如 ◈ ⌘ ✦ ⟡ ◐ ✎","title":"4-8 字","body":"20-35 字"}],"featuresDeep":[{"title":"6-12 字","body":"50-80 字"}]}
 
 features 的条数按这个业务真实有多少个值得说的卖点来定，3 到 6 条之间，不要为了凑数编。
 featuresDeep 是同一批卖点里最重要的 2 到 3 个，每条展开讲透。
 如果这个业务的卖点少而深（比如只有两三件事但每件都需要解释），features 就给 3 条；如果卖点多而浅（比如功能清单），就给 5 到 6 条。`,
-  commerce: `${BASE}
+  commerce: `
 字段：{"pricingTitle":"定价区标题","tiers":[{"name":"档位名","price":"¥数字","period":"每月/永久/每位/每份","features":["3-4 条"],"highlighted":布尔，恰好一档为 true}],"stats":[恰好 4 项 {"value":"数字带单位如 4.2万","label":"2-5 字"}],"logosCaption":"一句话说明下面这排标识是什么","logos":["四个平台或合作方名称"],"comparisonTitle":"对比区标题 6-12 字","comparisonUs":"我们这一列的表头，用品牌名或「我们」","comparisonThem":"对照那一列的表头，比如「传统做法」「其他家」","comparison":[恰好 4 项 {"label":"对比维度 3-6 字","us":"我们这边 8-16 字","them":"对照那边 8-16 字"}]}
 
 tiers 的档数按这个业务真实有几种卖法来定，1 到 3 档：
@@ -113,26 +132,27 @@ tiers 的档数按这个业务真实有几种卖法来定，1 到 3 档：
 - 分套餐、分规格、分订阅层级 → 2 到 3 档
 不适合订阅制的业务（餐饮、零售、服务），tiers 就用套餐 / 规格 / 价位来表达。不要硬凑成三档。
 comparison 写这个业务相对于替代方案的真实差异，对照方要写得公允，不要写成一无是处。`,
-  place: `${BASE}
+  place: `
 字段：{"galleryTitle":"作品/环境展示区标题 6-12 字","galleryCaption":"一句话说明这些展示的是什么","gallery":[恰好 6 项 {"title":"4-10 字的作品或菜品或空间名","note":"10-20 字补充"}],"stepsTitle":"流程区标题 6-12 字","steps":[恰好 3 到 4 步 {"title":"步骤名 4-8 字","body":"25-45 字说明"}],"contactTitle":"联系方式区标题","address":"一个合理的示例地址","hours":"营业或服务时间","phone":"一个明显是示例的电话号码","contactNote":"一句补充说明，比如停车、预约方式","teamTitle":"团队介绍标题 6-12 字","team":[恰好 3 位 {"name":"中文姓名","role":"职位 3-8 字","bio":"一句介绍 20-35 字"}]}
 
 gallery 写这个业务真实会展示的东西：餐饮写菜品、摄影写作品系列、门店写空间。
 steps 写顾客从了解到成交要经历的真实环节，不要写成通用的「咨询-下单-交付」。
 address 和 phone 明显是示例数据，不要写成像真的。
 team 写这个规模的生意真实会有的角色，个人工作室就写一两位加一句说明，不要编出一个大团队。`,
-  social: `${BASE}
+  social: `
 字段：{"testimonials":[恰好 3 条 {"quote":"25-45 字真实感评价","name":"中文姓名","role":"3-6 字"}],"faq":[恰好 4 条 {"q":"问题","a":"30-60 字"}],"ctaTitle":"底部转化标题 8-16 字","ctaBody":"20-35 字"}`,
 } as const;
 
-export type ChunkName = keyof typeof CHUNKS;
+export type ChunkName = keyof typeof CHUNK_BODIES;
 
 export function generateChunk(
   apiKey: string,
   chunk: ChunkName,
   context: string,
   signal: AbortSignal,
+  language = "zh",
 ) {
-  return call(apiKey, CHUNKS[chunk], context, 1300, signal);
+  return call(apiKey, base(language) + CHUNK_BODIES[chunk], context, 1300, signal);
 }
 
 export function contextFrom(description: string, identity: Record<string, unknown>) {

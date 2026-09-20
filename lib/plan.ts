@@ -54,6 +54,21 @@ export const ARCHETYPES = {
 export type ArchetypeKey = keyof typeof ARCHETYPES;
 
 /**
+ * Which language the finished site should be written in.
+ *
+ * Not simply "whatever language the request was typed in": someone may describe
+ * a business in Chinese and want an English site for overseas customers, and
+ * the request usually says so. That makes it a judgement, not a detection, so
+ * it rides along in the planning round as one more mutually exclusive Choice.
+ */
+export const LANGUAGES: Record<string, string> = {
+  zh: "简体中文。用户用中文描述，且没有要求其它语言时选它。",
+  en: "英文。用户用英文描述，或者明确说要做英文站、面向海外客户、要 English 版本时选它。",
+  ja: "日文。用户用日文描述，或者明确说要面向日本市场时选它。",
+  "zh-Hant": "繁体中文。用户用繁体描述，或者提到台湾、香港市场时选它。",
+};
+
+/**
  * Layer 2 — selection. Each slot is a closed set of mutually exclusive variants,
  * so exactly one wins and probability cannot leak across slots.
  */

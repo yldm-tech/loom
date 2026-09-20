@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { JSONUIProvider, Renderer } from "@json-render/react";
 import type { Spec } from "@json-render/core";
 import { registry } from "./registry";
@@ -8,6 +8,13 @@ import { THEMES } from "@/lib/themes";
 import { elementsFor, type SiteContent } from "@/lib/content";
 import { buildStandaloneHtml } from "@/lib/export";
 import { buildReactSource } from "@/lib/export-tsx";
+import {
+  detectLocale,
+  dict,
+  LOCALE_LABELS,
+  UI_LOCALES,
+  type UiLocale,
+} from "@/lib/i18n";
 
 type StepInfo = {
   choice: string;
@@ -16,17 +23,18 @@ type StepInfo = {
   answers?: Record<string, { choice: string; confidence?: number }>;
 };
 
-const EXAMPLES = [
-  "我在杭州开了家咖啡店，主打手冲单品豆，店里也卖豆子",
-  "我们做企业级数据合规 SaaS，卖给金融客户，要三档定价",
-  "我是独立摄影师，想要个作品集页面，极简，只要首屏",
-  "开源的 Rust 日志库，面向工程师，功能要讲深，不要转化区",
-  "面向中学生的在线编程课，想显得活泼一点",
-  "我开了家中医推拿馆，主要做颈椎和腰椎调理",
-];
 
 export default function Page() {
-  const [prompt, setPrompt] = useState(EXAMPLES[0]!);
+  const [locale, setLocale] = useState<UiLocale>("zh");
+  const t = dict(locale);
+  const [prompt, setPrompt] = useState("");
+
+  // Locale is read after mount so the server and client render the same markup.
+  useEffect(() => {
+    const detected = detectLocale();
+    setLocale(detected);
+    setPrompt((current) => current || dict(detected).examples[0]!);
+  }, []);
   const [spec, setSpec] = useState<Spec | null>(null);
   const [steps, setSteps] = useState<StepInfo[]>([]);
   const [status, setStatus] = useState("");
@@ -51,7 +59,7 @@ export default function Page() {
     setSteps([]);
     setSpec(null);
     setPlan("");
-    setStatus("发送中…");
+    setStatus(t.sending);
 
     const response = await fetch("/api/generate", {
       method: "POST",
@@ -59,7 +67,7 @@ export default function Page() {
       body: JSON.stringify({ prompt: request }),
     });
     if (!response.body) {
-      setStatus("没有响应流");
+      setStatus(t.noStream);
       setRunning(false);
       return;
     }
@@ -84,7 +92,7 @@ export default function Page() {
             .map(([slot, noul]) => `${slot} ${(noul as number).toFixed(2)}`)
             .join("  ");
           setPlan(
-            `${at}  规划 → ${event.archetypeLabel}@${(event.confidence ?? 0).toFixed(2)}  ·  主题 ${event.theme}@${(event.themeConfidence ?? 0).toFixed(2)}  ·  必需 ${event.required.join(" ")}  ·  可选 ${optional || "无"}`,
+            `${at}  ${t.plan} → ${event.archetypeLabel}@${(event.confidence ?? 0).toFixed(2)}  ·  ${event.language}  ·  ${t.theme} ${event.theme}@${(event.themeConfidence ?? 0).toFixed(2)}  ·  ${t.required} ${event.required.join(" ")}  ·  ${t.optional} ${optional || t.none}`,
           );
           setTheme(event.theme);
           setPickedTheme(event.theme);
@@ -92,11 +100,11 @@ export default function Page() {
           setVariants({});
           contentRef.current = null;
           setEditLog([]);
-          setStatus("正在写文案…");
+          setStatus(t.writingCopy);
         } else if (event.type === "content") {
           setPlan(
             (previous) =>
-              `${previous}\n${at}  文案 → ${event.brand} · ${event.tagline}`,
+              `${previous}\n${at}  ${t.copy} → ${event.brand} · ${event.tagline}`,
           );
         } else if (event.type === "picks") {
           setVariants((current) => ({ ...current, ...event.picks }));
@@ -107,16 +115,16 @@ export default function Page() {
             { choice: "select", elapsedMs: event.elapsedMs, answers: event.picks },
           ]);
         } else if (event.type === "partial") {
-          setPlan((previous) => `${previous}\n${at}  渲染 → ${event.phase}`);
-          setStatus(`${event.phase} 已填入`);
+          setPlan((previous) => `${previous}\n${at}  ${t.render} → ${event.phase}`);
+          setStatus(`${event.phase} ${t.filled}`);
           setSpec(event.spec);
         } else if (event.type === "complete") {
-          setStatus(`${event.stopReason} · 共 ${at}`);
+          setStatus(`${event.stopReason} · ${t.total} ${at}`);
           // No key bump here: the final spec should reconcile into the blocks
           // already on screen, not remount and re-animate the whole page.
           if (event.spec) setSpec(event.spec);
         } else if (event.type === "error") {
-          setStatus(`错误：${event.message}`);
+          setStatus(`${t.error}: ${event.message}`);
         }
       }
     }
@@ -135,17 +143,17 @@ export default function Page() {
     });
     const plan = await response.json();
     if (plan.error) {
-      setEditLog((log) => [...log, `「${request}」→ 出错：${plan.error}`]);
+      setEditLog((log) => [...log, `"${request}" → ${t.failed}: ${plan.error}`]);
       return;
     }
 
     const conf = (plan.confidence ?? 0).toFixed(2);
     const target = plan.variant
-      ? `${plan.slot} → ${plan.variant}${plan.arbitrary ? "（任取）" : ""}`
+      ? `${plan.slot} → ${plan.variant}${plan.arbitrary ? t.arbitrary : ""}`
       : (plan.slot ?? plan.theme ?? "—");
     setEditLog((log) => [
       ...log,
-      `「${request}」→ ${plan.action}@${conf} ${target} · ${plan.elapsedMs}ms`,
+      `"${request}" → ${plan.action}@${conf} ${target} · ${plan.elapsedMs}ms`,
     ]);
 
     if (plan.action === "theme" && plan.theme) {
@@ -155,7 +163,7 @@ export default function Page() {
     if (plan.action === "restyle" && plan.slot && plan.variant) {
       const content = contentRef.current;
       if (!content) {
-        setEditLog((log) => [...log, "  （文案还没就绪，稍后再试）"]);
+        setEditLog((log) => [...log, `  ${t.notReady}`]);
         return;
       }
       const element = elementsFor(content)[plan.variant];
@@ -210,7 +218,7 @@ export default function Page() {
     URL.revokeObjectURL(url);
     setEditLog((log) => [
       ...log,
-      `导出 site-${theme}.html · ${(html.length / 1024).toFixed(0)} KB`,
+      `${t.exportHtml} · ${(html.length / 1024).toFixed(0)} KB`,
     ]);
   }, [prompt, pickedTheme, theme]);
 
@@ -227,7 +235,7 @@ export default function Page() {
     URL.revokeObjectURL(url);
     setEditLog((log) => [
       ...log,
-      `导出 Site.tsx · ${(source.length / 1024).toFixed(0)} KB · ${source.split("\n").length} 行`,
+      `${t.exportTsx} · ${(source.length / 1024).toFixed(0)} KB · ${source.split("\n").length} ${t.lines}`,
     ]);
   }, [prompt]);
 
@@ -278,16 +286,29 @@ export default function Page() {
       <div className="border-b border-neutral-300 bg-white px-6 py-4 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mx-auto max-w-6xl">
           <div className="flex items-baseline justify-between">
-            <h1 className="text-[15px] font-semibold">
-              描述一个网站 → jev 组装 → 立刻渲染
-            </h1>
+            <h1 className="text-[15px] font-semibold">{t.tagline}</h1>
             <div className="flex items-center gap-3">
+            <div className="flex overflow-hidden rounded-md border border-neutral-300 text-[12px] dark:border-neutral-700">
+              {UI_LOCALES.map((code) => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => {
+                    setLocale(code);
+                    setPrompt(dict(code).examples[0]!);
+                  }}
+                  className={`px-2 py-1 ${locale === code ? "bg-neutral-900 text-white dark:bg-white dark:text-black" : "text-neutral-500"}`}
+                >
+                  {LOCALE_LABELS[code]}
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               onClick={() => setShowTrace((v) => !v)}
               className="text-[13px] text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100"
             >
-              {showTrace ? "隐藏决策" : "显示决策"}
+              {showTrace ? t.hideTrace : t.showTrace}
             </button>
             </div>
           </div>
@@ -302,7 +323,7 @@ export default function Page() {
             <input
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
-              placeholder="想要一个什么样的网站？"
+              placeholder={t.placeholder}
               className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-[14px] outline-none focus:border-neutral-600 dark:border-neutral-700 dark:bg-neutral-800"
             />
             <button
@@ -310,12 +331,12 @@ export default function Page() {
               disabled={running}
               className="rounded-lg bg-neutral-900 px-5 py-2 text-[14px] text-white disabled:opacity-40 dark:bg-white dark:text-black"
             >
-              {running ? "组装中…" : "生成网站"}
+              {running ? t.generating : t.generate}
             </button>
           </form>
 
           <div className="flex flex-wrap gap-2 pt-3">
-            {EXAMPLES.map((example) => (
+            {t.examples.map((example) => (
               <button
                 key={example}
                 type="button"
@@ -338,7 +359,7 @@ export default function Page() {
 
           {spec && (
             <div className="flex flex-wrap items-center gap-2 pt-3">
-              <span className="text-[12px] text-neutral-500">主题</span>
+              <span className="text-[12px] text-neutral-500">{t.theme}</span>
               {Object.entries(THEMES).map(([key, t]) => (
                 <button
                   key={key}
@@ -367,21 +388,21 @@ export default function Page() {
                 onClick={exportHtml}
                 className="rounded-full border border-neutral-300 px-2.5 py-1 text-[12px] text-neutral-600 hover:border-neutral-600 dark:border-neutral-700 dark:text-neutral-300"
               >
-                导出 HTML
+                {t.exportHtml}
               </button>
               <button
                 type="button"
                 onClick={exportTsx}
                 className="rounded-full border border-neutral-300 px-2.5 py-1 text-[12px] text-neutral-600 hover:border-neutral-600 dark:border-neutral-700 dark:text-neutral-300"
               >
-                导出 Site.tsx
+                {t.exportTsx}
               </button>
               <button
                 type="button"
                 onClick={exportSpec}
                 className="rounded-full border border-neutral-300 px-2.5 py-1 text-[12px] text-neutral-600 hover:border-neutral-600 dark:border-neutral-700 dark:text-neutral-300"
               >
-                导出 spec.json
+                {t.exportSpec}
               </button>
             </div>
           )}
@@ -398,14 +419,14 @@ export default function Page() {
                 <input
                   value={editPrompt}
                   onChange={(event) => setEditPrompt(event.target.value)}
-                  placeholder="改点什么？比如「不要定价了」「换个更活泼的配色」"
+                  placeholder={t.editPlaceholder}
                   className="flex-1 rounded-lg border border-neutral-300 px-3 py-1.5 text-[13px] outline-none focus:border-neutral-600 dark:border-neutral-700 dark:bg-neutral-800"
                 />
                 <button
                   type="submit"
                   className="rounded-lg border border-neutral-400 px-3 py-1.5 text-[13px] dark:border-neutral-600"
                 >
-                  修改
+                  {t.edit}
                 </button>
               </form>
               {editLog.length > 0 && (
@@ -460,7 +481,7 @@ export default function Page() {
             </JSONUIProvider>
           ) : (
             <div className="py-32 text-center text-[15px] text-neutral-400">
-              {running ? "正在挑选区块…" : "点上面一个例子，或者自己描述一个网站"}
+              {running ? t.picking : t.empty}
             </div>
           )}
         </div>

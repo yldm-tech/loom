@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { buildReactSource } from "./export-tsx";
 
 function element(html: string): Element {
@@ -70,5 +70,90 @@ describe("buildReactSource", () => {
     const source = buildReactSource(element(`<div>hi</div>`), "我开了家咖啡店");
     expect(source).toContain("export default function Site()");
     expect(source).toContain("我开了家咖啡店");
+  });
+});
+
+/**
+ * Quotation marks moved from the markup into CSS, and the export lost them
+ * without anything noticing: the class it kept referred to a rule that does
+ * not ship with the file. These bake the generated content back in.
+ */
+describe("CSS generated content", () => {
+  const real = globalThis.getComputedStyle;
+  afterEach(() => {
+    globalThis.getComputedStyle = real;
+  });
+
+  /** jsdom resolves no pseudo-element content, so the values are supplied here. */
+  function withPseudo(styles: Record<string, { content?: string; quotes?: string }>) {
+    globalThis.getComputedStyle = ((el: Element, pseudo?: string | null) => {
+      const key = pseudo ? `${(el as HTMLElement).tagName.toLowerCase()}${pseudo}` : "";
+      const own = styles[key] ?? {};
+      return { content: own.content ?? "none", quotes: own.quotes ?? "auto" } as CSSStyleDeclaration;
+    }) as typeof globalThis.getComputedStyle;
+  }
+
+  it("resolves open-quote and close-quote through the quotes pair", () => {
+    withPseudo({
+      "blockquote::before": { content: "open-quote", quotes: '"「" "」"' },
+      "blockquote::after": { content: "close-quote", quotes: '"「" "」"' },
+    });
+    const source = buildReactSource(element(`<blockquote>很好喝</blockquote>`), "t");
+    expect(source).toContain("「很好喝」");
+  });
+
+  it("keeps the marks flush against the text", () => {
+    // JSX turns the newline between two pieces of text into a space, which
+    // would render as 「 很好喝 」 — wrong in every language that does not
+    // want one, and invisible unless you compare the strings.
+    withPseudo({
+      "blockquote::before": { content: "open-quote", quotes: '"「" "」"' },
+      "blockquote::after": { content: "close-quote", quotes: '"「" "」"' },
+    });
+    const source = buildReactSource(element(`<blockquote>很好喝</blockquote>`), "t");
+    expect(source).not.toContain("「\n");
+    expect(source).not.toMatch(/「\s/);
+    expect(source).not.toMatch(/\s」/);
+  });
+
+  it("carries a mark that is itself spaced, like the French guillemets", () => {
+    withPseudo({
+      "blockquote::before": { content: "open-quote", quotes: '"« " " »"' },
+      "blockquote::after": { content: "close-quote", quotes: '"« " " »"' },
+    });
+    const source = buildReactSource(element(`<blockquote>Excellent</blockquote>`), "t");
+    expect(source).toContain("« Excellent »");
+  });
+
+  it("takes a string literal as written", () => {
+    withPseudo({ "span::before": { content: '"→ "' } });
+    const source = buildReactSource(element(`<span>next</span>`), "t");
+    expect(source).toContain("→ next");
+  });
+
+  it("adds nothing when there is no generated content", () => {
+    withPseudo({});
+    const source = buildReactSource(element(`<blockquote>plain</blockquote>`), "t");
+    expect(source).toContain("plain");
+    expect(source).not.toMatch(/[「」«»]/);
+  });
+
+  it("ignores a quote keyword with no pair to resolve it", () => {
+    // `quotes: auto` is the browser's own default; there is nothing to read.
+    withPseudo({ "blockquote::before": { content: "open-quote", quotes: "auto" } });
+    const source = buildReactSource(element(`<blockquote>plain</blockquote>`), "t");
+    expect(source).toContain("plain");
+    expect(source).not.toMatch(/open-quote/);
+  });
+
+  it("drops the class that named a rule the file does not carry", () => {
+    withPseudo({});
+    const source = buildReactSource(
+      element(`<blockquote class="quoted blk-in text-sm">x</blockquote>`),
+      "t",
+    );
+    expect(source).toContain('className="text-sm"');
+    expect(source).not.toContain("quoted");
+    expect(source).not.toContain("blk-in");
   });
 });

@@ -102,6 +102,20 @@ export const catalog = defineCatalog(schema, {
         note: z.string(),
       }),
     },
+    Comparison: {
+      props: z.object({
+        title: z.string(),
+        us: z.string(),
+        them: z.string(),
+        rows: z.array(z.object({ label: z.string(), us: z.string(), them: z.string() })),
+      }),
+    },
+    Team: {
+      props: z.object({
+        title: z.string(),
+        members: z.array(z.object({ name: z.string(), role: z.string(), bio: z.string() })),
+      }),
+    },
     Skeleton: { props: z.object({ kind: z.string() }) },
   },
   actions: {},

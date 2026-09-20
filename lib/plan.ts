@@ -12,7 +12,7 @@ export const ARCHETYPES = {
     description:
       "面向新访客的营销落地页，目标是让人下载或注册。必须有首屏和转化区，通常还有功能介绍和社会证明。",
     required: ["nav", "hero", "features", "cta", "footer"],
-    optional: ["social", "pricing", "faq", "gallery", "steps"],
+    optional: ["social", "pricing", "faq", "gallery", "steps", "comparison", "team"],
   },
   minimal: {
     label: "极简单页",
@@ -26,28 +26,28 @@ export const ARCHETYPES = {
     description:
       "面向开发者或资深用户，重点是把功能和原理讲清楚，不做转化施压。用户说面向工程师、讲深、不要花哨时选它。",
     required: ["nav", "hero", "features", "footer"],
-    optional: ["faq", "social", "steps"],
+    optional: ["faq", "social", "steps", "comparison"],
   },
   pricing: {
     label: "定价页",
     description:
       "专门讲钱的页面，主体是价格方案对比和常见问题。用户主要在问定价、套餐、多少钱时选它。",
     required: ["nav", "pricing", "faq", "cta", "footer"],
-    optional: ["social", "hero"],
+    optional: ["social", "hero", "comparison"],
   },
   local: {
     label: "线下门店页",
     description:
       "有实体门店或线下服务的生意，访客最终要到店或预约。必须能看到联系方式和营业信息，通常还想看环境、作品或菜品。咖啡馆、餐厅、诊所、理发店、工作室、民宿这类选它。",
     required: ["nav", "hero", "contact", "footer"],
-    optional: ["gallery", "steps", "social", "faq", "pricing"],
+    optional: ["gallery", "steps", "social", "faq", "pricing", "team"],
   },
   oss: {
     label: "开源项目主页",
     description:
       "开源软件的主页，强调免费、协议和不收费，不做商业转化。用户提到开源、免费、不联网、隐私时选它。",
     required: ["nav", "hero", "features", "footer"],
-    optional: ["faq", "social", "pricing"],
+    optional: ["faq", "social", "pricing", "comparison"],
   },
 } as const;
 
@@ -126,6 +126,18 @@ export const SLOTS = {
       contact: "地址、营业时间、电话，外加一句补充说明。线下生意必备。",
     },
   },
+  comparison: {
+    question: "这个页面的对比区",
+    variants: {
+      comparison: "两列对比表，四个维度，说明这家和替代方案的差别。适合需要说服访客换掉现有方案的生意。",
+    },
+  },
+  team: {
+    question: "这个页面的团队介绍",
+    variants: {
+      team: "三人一排，姓名、职位、一句介绍。适合服务业、工作室、咨询这类「人就是产品」的生意。",
+    },
+  },
   faq: {
     question: "这个页面的常见问题区",
     variants: { faq: "四组问答，覆盖系统要求、收费、隐私、词库导入" },
@@ -149,7 +161,9 @@ export const SLOT_ORDER: SlotKey[] = [
   "social",
   "features",
   "gallery",
+  "comparison",
   "steps",
+  "team",
   "pricing",
   "contact",
   "faq",

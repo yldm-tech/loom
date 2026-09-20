@@ -629,6 +629,90 @@ export const { registry } = defineRegistry(catalog, {
       </section>
     ),
 
+
+    Comparison: ({ props }) => (
+      <section className={`${SECTION} blk-in`}>
+        <div className={`${INNER} max-w-3xl`}>
+          <h2
+            className="text-center text-3xl font-bold"
+            style={{ fontFamily: "var(--display)", letterSpacing: "var(--tracking)" }}
+          >
+            {props.title}
+          </h2>
+          <div
+            className="mt-10 overflow-hidden"
+            style={{
+              border: "1px solid var(--border)",
+              borderRadius: "calc(var(--radius) * 1.4)",
+            }}
+          >
+            <div
+              className="grid grid-cols-3 text-[13px] font-medium"
+              style={{ background: "var(--surface)" }}
+            >
+              <div className="p-4" style={{ color: "var(--muted)" }} />
+              <div className="p-4" style={{ color: "var(--accent)" }}>
+                {props.us}
+              </div>
+              <div className="p-4" style={{ color: "var(--muted)" }}>
+                {props.them}
+              </div>
+            </div>
+            {(props.rows as { label: string; us: string; them: string }[]).map((row) => (
+              <div
+                key={row.label}
+                className="grid grid-cols-3 text-[14px]"
+                style={{ borderTop: "1px solid var(--border)" }}
+              >
+                <div className="p-4 font-medium">{row.label}</div>
+                <div className="p-4 leading-relaxed">{row.us}</div>
+                <div className="p-4 leading-relaxed" style={{ color: "var(--muted)" }}>
+                  {row.them}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    ),
+
+    Team: ({ props }) => (
+      <section className={`${SECTION} blk-in`} style={{ background: "var(--surface)" }}>
+        <div className={INNER}>
+          <h2
+            className="text-center text-3xl font-bold"
+            style={{ fontFamily: "var(--display)", letterSpacing: "var(--tracking)" }}
+          >
+            {props.title}
+          </h2>
+          <div className="grid gap-8 pt-12 md:grid-cols-3">
+            {(props.members as { name: string; role: string; bio: string }[]).map((member) => (
+              <div key={member.name} className="text-center">
+                <div
+                  className="mx-auto flex h-16 w-16 items-center justify-center text-[20px] font-semibold"
+                  style={{
+                    background: "var(--accent-soft)",
+                    color: "var(--accent)",
+                    borderRadius: "999px",
+                    fontFamily: "var(--display)",
+                  }}
+                >
+                  {member.name.slice(0, 1)}
+                </div>
+                <h3 className="pt-4 text-[16px] font-semibold">{member.name}</h3>
+                <div className="pt-0.5 text-[13px]" style={{ color: "var(--accent)" }}>
+                  {member.role}
+                </div>
+                <p className="pt-2 text-[14px] leading-relaxed" style={{ color: "var(--muted)" }}>
+                  {member.bio}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    ),
+
     /** Placeholder that mimics the real block's shape until its copy arrives. */
     Skeleton: ({ props }) => {
       const kind = String(props.kind ?? "section");

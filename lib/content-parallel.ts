@@ -106,18 +106,20 @@ features 的条数按这个业务真实有多少个值得说的卖点来定，3 
 featuresDeep 是同一批卖点里最重要的 2 到 3 个，每条展开讲透。
 如果这个业务的卖点少而深（比如只有两三件事但每件都需要解释），features 就给 3 条；如果卖点多而浅（比如功能清单），就给 5 到 6 条。`,
   commerce: `${BASE}
-字段：{"pricingTitle":"定价区标题","tiers":[{"name":"档位名","price":"¥数字","period":"每月/永久/每位/每份","features":["3-4 条"],"highlighted":布尔，恰好一档为 true}],"stats":[恰好 4 项 {"value":"数字带单位如 4.2万","label":"2-5 字"}],"logosCaption":"一句话说明下面这排标识是什么","logos":["四个平台或合作方名称"]}
+字段：{"pricingTitle":"定价区标题","tiers":[{"name":"档位名","price":"¥数字","period":"每月/永久/每位/每份","features":["3-4 条"],"highlighted":布尔，恰好一档为 true}],"stats":[恰好 4 项 {"value":"数字带单位如 4.2万","label":"2-5 字"}],"logosCaption":"一句话说明下面这排标识是什么","logos":["四个平台或合作方名称"],"comparisonTitle":"对比区标题 6-12 字","comparisonUs":"我们这一列的表头，用品牌名或「我们」","comparisonThem":"对照那一列的表头，比如「传统做法」「其他家」","comparison":[恰好 4 项 {"label":"对比维度 3-6 字","us":"我们这边 8-16 字","them":"对照那边 8-16 字"}]}
 
 tiers 的档数按这个业务真实有几种卖法来定，1 到 3 档：
 - 只有一种价格或完全免费 → 1 档
 - 分套餐、分规格、分订阅层级 → 2 到 3 档
-不适合订阅制的业务（餐饮、零售、服务），tiers 就用套餐 / 规格 / 价位来表达。不要硬凑成三档。`,
+不适合订阅制的业务（餐饮、零售、服务），tiers 就用套餐 / 规格 / 价位来表达。不要硬凑成三档。
+comparison 写这个业务相对于替代方案的真实差异，对照方要写得公允，不要写成一无是处。`,
   place: `${BASE}
-字段：{"galleryTitle":"作品/环境展示区标题 6-12 字","galleryCaption":"一句话说明这些展示的是什么","gallery":[恰好 6 项 {"title":"4-10 字的作品或菜品或空间名","note":"10-20 字补充"}],"stepsTitle":"流程区标题 6-12 字","steps":[恰好 3 到 4 步 {"title":"步骤名 4-8 字","body":"25-45 字说明"}],"contactTitle":"联系方式区标题","address":"一个合理的示例地址","hours":"营业或服务时间","phone":"一个明显是示例的电话号码","contactNote":"一句补充说明，比如停车、预约方式"}
+字段：{"galleryTitle":"作品/环境展示区标题 6-12 字","galleryCaption":"一句话说明这些展示的是什么","gallery":[恰好 6 项 {"title":"4-10 字的作品或菜品或空间名","note":"10-20 字补充"}],"stepsTitle":"流程区标题 6-12 字","steps":[恰好 3 到 4 步 {"title":"步骤名 4-8 字","body":"25-45 字说明"}],"contactTitle":"联系方式区标题","address":"一个合理的示例地址","hours":"营业或服务时间","phone":"一个明显是示例的电话号码","contactNote":"一句补充说明，比如停车、预约方式","teamTitle":"团队介绍标题 6-12 字","team":[恰好 3 位 {"name":"中文姓名","role":"职位 3-8 字","bio":"一句介绍 20-35 字"}]}
 
 gallery 写这个业务真实会展示的东西：餐饮写菜品、摄影写作品系列、门店写空间。
 steps 写顾客从了解到成交要经历的真实环节，不要写成通用的「咨询-下单-交付」。
-address 和 phone 明显是示例数据，不要写成像真的。`,
+address 和 phone 明显是示例数据，不要写成像真的。
+team 写这个规模的生意真实会有的角色，个人工作室就写一两位加一句说明，不要编出一个大团队。`,
   social: `${BASE}
 字段：{"testimonials":[恰好 3 条 {"quote":"25-45 字真实感评价","name":"中文姓名","role":"3-6 字"}],"faq":[恰好 4 条 {"q":"问题","a":"30-60 字"}],"ctaTitle":"底部转化标题 8-16 字","ctaBody":"20-35 字"}`,
 } as const;
@@ -156,6 +158,8 @@ export const SLOT_NEEDS: Record<string, (keyof SiteContent)[]> = {
   gallery: ["galleryTitle", "gallery"],
   steps: ["stepsTitle", "steps"],
   contact: ["contactTitle", "address", "hours"],
+  comparison: ["comparisonTitle", "comparison"],
+  team: ["teamTitle", "team"],
   cta_band: ["ctaTitle", "ctaBody", "primaryCta"],
   footer: ["brand", "footerColumns", "footerNote"],
 };

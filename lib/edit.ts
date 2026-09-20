@@ -23,6 +23,8 @@ const SLOT_LABELS: Record<SlotKey, string> = {
   features: "功能介绍区",
   pricing: "价格区",
   gallery: "作品 / 环境展示区",
+  comparison: "对比区",
+  team: "团队介绍",
   steps: "流程说明区",
   contact: "联系与到店信息",
   faq: "常见问题区",

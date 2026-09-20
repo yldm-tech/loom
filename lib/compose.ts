@@ -25,6 +25,8 @@ const SKELETON_KIND: Record<string, string> = {
   hero: "hero",
   social: "testimonials",
   gallery: "features",
+  comparison: "faq",
+  team: "testimonials",
   steps: "faq",
   contact: "faq",
   features: "features",

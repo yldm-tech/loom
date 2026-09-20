@@ -51,6 +51,12 @@ export type SiteContent = {
   hours: string;
   phone: string;
   contactNote: string;
+  comparisonTitle: string;
+  comparisonUs: string;
+  comparisonThem: string;
+  comparison: { label: string; us: string; them: string }[];
+  teamTitle: string;
+  team: { name: string; role: string; bio: string }[];
 };
 
 /** Fill every block template with the generated content. */
@@ -170,6 +176,19 @@ export function elementsFor(content: SiteContent) {
         phone: content.phone,
         note: content.contactNote,
       },
+    },
+    comparison: {
+      type: "Comparison",
+      props: {
+        title: content.comparisonTitle,
+        us: content.comparisonUs,
+        them: content.comparisonThem,
+        rows: content.comparison,
+      },
+    },
+    team: {
+      type: "Team",
+      props: { title: content.teamTitle, members: content.team },
     },
     footer: {
       type: "Footer",

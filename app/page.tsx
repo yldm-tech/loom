@@ -7,6 +7,7 @@ import { registry } from "./registry";
 import { THEMES } from "@/lib/themes";
 import { elementsFor, type SiteContent } from "@/lib/content";
 import { buildStandaloneHtml } from "@/lib/export";
+import { buildReactSource } from "@/lib/export-tsx";
 
 type StepInfo = {
   choice: string;
@@ -213,6 +214,23 @@ export default function Page() {
     ]);
   }, [prompt, pickedTheme, theme]);
 
+  const exportTsx = useCallback(() => {
+    const node = previewRef.current?.firstElementChild;
+    if (!node) return;
+    const source = buildReactSource(node, prompt);
+    const blob = new Blob([source], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Site.tsx";
+    a.click();
+    URL.revokeObjectURL(url);
+    setEditLog((log) => [
+      ...log,
+      `导出 Site.tsx · ${(source.length / 1024).toFixed(0)} KB · ${source.split("\n").length} 行`,
+    ]);
+  }, [prompt]);
+
   const exportSpec = useCallback(() => {
     if (!spec) return;
     const elements = spec.elements as Record<string, { props?: Record<string, unknown> }>;
@@ -350,6 +368,13 @@ export default function Page() {
                 className="rounded-full border border-neutral-300 px-2.5 py-1 text-[12px] text-neutral-600 hover:border-neutral-600 dark:border-neutral-700 dark:text-neutral-300"
               >
                 导出 HTML
+              </button>
+              <button
+                type="button"
+                onClick={exportTsx}
+                className="rounded-full border border-neutral-300 px-2.5 py-1 text-[12px] text-neutral-600 hover:border-neutral-600 dark:border-neutral-700 dark:text-neutral-300"
+              >
+                导出 Site.tsx
               </button>
               <button
                 type="button"

@@ -1,0 +1,153 @@
+/**
+ * React source export.
+ *
+ * The HTML export hands you a page; this hands you a file you can keep working
+ * on. Like the HTML export it reads the rendered DOM rather than re-deriving
+ * layout, so the block markup still lives in exactly one place.
+ *
+ * What comes out is one flat component. That is deliberate: a generated file
+ * you can read top to bottom and cut apart yourself beats a clever hierarchy
+ * you have to reverse-engineer first.
+ */
+
+const VOID_TAGS = new Set([
+  "area", "base", "br", "col", "embed", "hr", "img", "input",
+  "link", "meta", "param", "source", "track", "wbr",
+]);
+
+/** DOM attribute name -> JSX prop name, for the ones React spells differently. */
+const PROP_NAMES: Record<string, string> = {
+  class: "className",
+  for: "htmlFor",
+  tabindex: "tabIndex",
+  colspan: "colSpan",
+  rowspan: "rowSpan",
+  maxlength: "maxLength",
+  readonly: "readOnly",
+  autocomplete: "autoComplete",
+  srcset: "srcSet",
+  "stroke-width": "strokeWidth",
+  "stroke-linecap": "strokeLinecap",
+  "stroke-linejoin": "strokeLinejoin",
+  "fill-rule": "fillRule",
+  "clip-rule": "clipRule",
+  "aria-hidden": "aria-hidden",
+};
+
+function toCamel(property: string): string {
+  if (property.startsWith("--")) return `"${property}"`;
+  return property.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+}
+
+/** `style="a: b; c: d"` -> a JSX style object, custom properties included. */
+function styleObject(style: string): string {
+  const entries: string[] = [];
+  // Split on semicolons that are not inside parentheses, so gradients survive.
+  let depth = 0;
+  let current = "";
+  for (const char of style) {
+    if (char === "(") depth += 1;
+    if (char === ")") depth -= 1;
+    if (char === ";" && depth === 0) {
+      if (current.trim()) entries.push(current.trim());
+      current = "";
+    } else current += char;
+  }
+  if (current.trim()) entries.push(current.trim());
+
+  let hasCustomProperty = false;
+  const pairs = entries
+    .map((entry) => {
+      const index = entry.indexOf(":");
+      if (index < 0) return null;
+      const key = entry.slice(0, index).trim();
+      const value = entry.slice(index + 1).trim();
+      if (!key || !value) return null;
+      if (key.startsWith("--")) hasCustomProperty = true;
+      return `${toCamel(key)}: ${JSON.stringify(value)}`;
+    })
+    .filter(Boolean);
+  if (pairs.length === 0) return "{{}}";
+  // React's CSSProperties has no index signature for custom properties, so a
+  // style object carrying theme variables needs an explicit cast to compile.
+  const body = `{ ${pairs.join(", ")} }`;
+  return hasCustomProperty ? `{${body} as CSSProperties}` : `{${body}}`;
+}
+
+function escapeText(text: string): string {
+  // Braces are JSX syntax; everything else can sit in the tree as-is.
+  return text.includes("{") || text.includes("}")
+    ? `{${JSON.stringify(text)}}`
+    : text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function serialize(node: Node, depth: number): string {
+  const pad = "  ".repeat(depth);
+
+  if (node.nodeType === Node.TEXT_NODE) {
+    const text = (node.textContent ?? "").replace(/\s+/g, " ").trim();
+    return text ? `${pad}${escapeText(text)}` : "";
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return "";
+
+  const element = node as Element;
+  const tag = element.tagName.toLowerCase();
+
+  // The runtime injects a <style> block for the streaming fade-in. Class names
+  // referencing it are stripped below, so the rule itself is dead weight here.
+  if (tag === "style") return "";
+
+  // The exported component owns its own animation; the runtime class would
+  // reference a keyframe that no longer ships.
+  const attributes: string[] = [];
+  for (const attr of Array.from(element.attributes)) {
+    if (attr.name === "style") {
+      attributes.push(`style=${styleObject(attr.value)}`);
+      continue;
+    }
+    if (attr.name === "class") {
+      const cleaned = attr.value.replace(/\bblk-in\b/g, "").replace(/\s+/g, " ").trim();
+      if (cleaned) attributes.push(`className=${JSON.stringify(cleaned)}`);
+      continue;
+    }
+    const name = PROP_NAMES[attr.name] ?? attr.name;
+    attributes.push(`${name}=${JSON.stringify(attr.value)}`);
+  }
+
+  const attrText =
+    attributes.length === 0
+      ? ""
+      : attributes.length <= 2
+        ? ` ${attributes.join(" ")}`
+        : `\n${pad}  ${attributes.join(`\n${pad}  `)}\n${pad}`;
+
+  if (VOID_TAGS.has(tag)) return `${pad}<${tag}${attrText} />`;
+
+  const children = Array.from(element.childNodes)
+    .map((child) => serialize(child, depth + 1))
+    .filter(Boolean);
+
+  if (children.length === 0) return `${pad}<${tag}${attrText} />`;
+  return `${pad}<${tag}${attrText}>\n${children.join("\n")}\n${pad}</${tag}>`;
+}
+
+export function buildReactSource(root: Element, description: string): string {
+  const jsx = serialize(root, 3);
+  const today = new Date().toISOString().slice(0, 10);
+  return `// Generated by loom on ${today}
+// Source request: ${description.replace(/\n/g, " ")}
+//
+// One flat component, no dependencies beyond React. Colours, fonts and radii
+// are CSS custom properties set on the outermost element, so retheming means
+// editing that one style object. Tailwind utility classes are preserved; drop
+// this into a project that has Tailwind, or replace the classes with your own.
+
+import type { CSSProperties } from "react";
+
+export default function Site() {
+  return (
+${jsx}
+  );
+}
+`;
+}

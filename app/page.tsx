@@ -41,6 +41,7 @@ export default function Page() {
   const [running, setRunning] = useState(false);
   const [showTrace, setShowTrace] = useState(true);
   const [plan, setPlan] = useState<string>("");
+  const [demo, setDemo] = useState(false);
   const [theme, setTheme] = useState<string>("forest");
   const [pickedTheme, setPickedTheme] = useState<string>("");
   const [editPrompt, setEditPrompt] = useState("");
@@ -85,6 +86,7 @@ export default function Page() {
       for (const line of lines) {
         if (!line.trim()) continue;
         const event = JSON.parse(line);
+        if (event.demo) setDemo(true);
         const at = `${((event.elapsedMs ?? 0) / 1000).toFixed(1)}s`;
 
         if (event.type === "plan") {
@@ -350,6 +352,15 @@ export default function Page() {
               </button>
             ))}
           </div>
+
+          {demo && (
+            <div
+              className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[12px] text-amber-900 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-200"
+              role="status"
+            >
+              {t.demoBanner}
+            </div>
+          )}
 
           {plan && (
             <div className="whitespace-pre-line pt-3 font-mono text-[12px] text-emerald-700 dark:text-emerald-400">

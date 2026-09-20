@@ -75,15 +75,24 @@ Jev は全体で約 3 回の呼び出し、1 秒未満、1 サイトあたり $0
 
 ## 動かす
 
+キーが無くても動きます。`npm run dev` して開けば**デモモード**——実際に記録した実行を、ストリーミングの間合いまでそのまま再生します。再生であることは画面にはっきり出ます。
+
 ```bash
 git clone https://github.com/yldm-tech/loom
 cd loom
 npm install
+npm run dev          # デモモード、設定不要
+```
+
+実時間で生成するにはキーを足します。
+
+```bash
 cp .env.example .env.local   # JEV_TOKEN と LLM_TOKEN を記入
-npm run dev
 ```
 
 `JEV_TOKEN` は [typesafe.ai](https://typesafe.ai) で取得します。`LLM_TOKEN` は OpenAI 互換のエンドポイントなら何でも構いません——OpenAI、OpenRouter、ゲートウェイ、ローカルの llama.cpp。`LLM_BASE_URL` と `LLM_MODEL` を変えるだけです。
+
+`fixtures/` の中身は**実際に走らせた記録**であって、手書きではありません。誰も再現できない作り物で見栄えを取り繕うデモは、デモが無いより悪いからです。
 
 ## 生成後の修正
 

@@ -29,6 +29,7 @@
   "notReady": "(copy is not ready yet, try again in a moment)",
   "arbitrary": " (any)",
   "lines": "lines",
+  "demoBanner": "Demo mode: replaying a real recorded run. Set JEV_TOKEN and LLM_TOKEN to generate live.",
   "examples": [
     "A specialty coffee shop in Brooklyn, pour-over only, we also sell beans",
     "Enterprise data compliance SaaS for financial institutions, three pricing tiers",

@@ -75,15 +75,24 @@ Jev costs about three calls, under a second, on the order of $0.001 per site. **
 
 ## Running it
 
+You can run it without keys. `npm run dev` and open it — that is **demo mode**: a real recorded run replayed with its original streaming timing, and the UI says so plainly.
+
 ```bash
 git clone https://github.com/yldm-tech/loom
 cd loom
 npm install
+npm run dev          # demo mode, zero config
+```
+
+Add keys to generate for real:
+
+```bash
 cp .env.example .env.local   # fill in JEV_TOKEN and LLM_TOKEN
-npm run dev
 ```
 
 Get `JEV_TOKEN` from [typesafe.ai](https://typesafe.ai). `LLM_TOKEN` works with any OpenAI-compatible endpoint — OpenAI, OpenRouter, a gateway, a local llama.cpp server — just set `LLM_BASE_URL` and `LLM_MODEL`.
+
+The files under `fixtures/` are **actual recorded runs**, not hand-written. A demo propped up by invented output nobody could reproduce is worse than no demo.
 
 ## Editing afterwards
 

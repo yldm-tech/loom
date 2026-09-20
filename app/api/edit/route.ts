@@ -1,14 +1,10 @@
 import { editPlan } from "@/lib/edit";
+import { isDemoMode, replayEdit } from "@/lib/demo";
 import type { SlotKey } from "@/lib/plan";
 
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
-  const apiKey = process.env.JEV_TOKEN?.trim();
-  if (!apiKey) {
-    return Response.json({ error: "JEV_TOKEN is not set" }, { status: 500 });
-  }
-
   const { prompt, present, theme, variants } = (await request.json()) as {
     prompt?: string;
     present?: SlotKey[];
@@ -20,6 +16,17 @@ export async function POST(request: Request) {
   }
 
   const started = Date.now();
+  if (isDemoMode()) {
+    return Response.json({
+      ...replayEdit(prompt, present ?? [], theme ?? "forest"),
+      demo: true,
+      inputTokens: 0,
+      speculative: {},
+      elapsedMs: Date.now() - started,
+    });
+  }
+
+  const apiKey = process.env.JEV_TOKEN!.trim();
   try {
     const plan = await editPlan(
       apiKey,

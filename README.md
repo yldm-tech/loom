@@ -75,15 +75,24 @@ jev 全程约 3 次调用、不到 1 秒、$0.001 量级。**瓶颈始终是 LLM
 
 ## 跑起来
 
+不配 key 也能跑。`npm run dev` 之后直接打开就是**演示模式**：回放一段真实录制的运行，连流式时序都是原样的，界面上会明说这是回放。
+
 ```bash
 git clone https://github.com/yldm-tech/loom
 cd loom
 npm install
+npm run dev          # 演示模式，零配置
+```
+
+要实时生成就补上 key：
+
+```bash
 cp .env.example .env.local   # 填 JEV_TOKEN 和 LLM_TOKEN
-npm run dev
 ```
 
 `JEV_TOKEN` 从 [typesafe.ai](https://typesafe.ai) 拿。`LLM_TOKEN` 可以是任何 OpenAI 兼容端点——OpenAI、OpenRouter、网关、本地 llama.cpp 都行，改 `LLM_BASE_URL` 和 `LLM_MODEL` 即可。
+
+`fixtures/*.jsonl` 是**真跑出来的**，不是手写的。一个靠人工编造的漂亮输出来撑场面的 demo，比没有 demo 更糟。
 
 ## 能改什么
 
@@ -232,9 +241,12 @@ lib/
   export.ts            自包含 HTML 导出，只带用到的 CSS
   export-tsx.ts        React 源码导出，DOM → JSX
   i18n.ts              界面语言，读 locales/*.json
+  demo.ts              无 key 时回放 fixtures/ 里的真实录制
   *.test.ts            纯逻辑的测试，不碰网络
 locales/
   zh|en|ja|ko.json     界面翻译，zh 为基准
+fixtures/
+  zh|en|ja|ko.jsonl    真实录制的运行，供演示模式回放
 app/
   page.tsx             界面、流式消费、客户端改主题和版式
   registry.tsx         区块长什么样，全部读 CSS 变量

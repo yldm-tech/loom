@@ -9,6 +9,8 @@
   "exportHtml": "Exportar HTML",
   "exportTsx": "Exportar Site.tsx",
   "exportSpec": "Exportar spec.json",
+  "exportRegistry": "Exportar site.registry.json",
+  "exportAgents": "Exportar AGENTS.md",
   "editPlaceholder": "Cambia algo — «quita los precios», «que sea más desenfadado»",
   "edit": "Aplicar",
   "empty": "Elige un ejemplo de arriba, o describe el tuyo",

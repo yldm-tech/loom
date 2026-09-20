@@ -174,13 +174,15 @@ La interfaz del editor es otra cosa: ocho idiomas, elegidos a partir de `navigat
 
 ## Exportación
 
-Tres formatos, todos derivados **del mismo resultado renderizado**. No hay una segunda copia del código de composición.
+Cinco formatos, todos derivados **del mismo resultado renderizado**. No hay una segunda copia del código de composición.
 
 | Exportación | Tamaño | Para |
 |---|---|---|
 | `site.html` | 36 KB | Súbelo, o simplemente ábrelo con doble clic |
 | `Site.tsx` | 34 KB | Seguir desarrollando; compila con `tsc --strict` |
 | `spec.json` | unos pocos KB | Archivarlo, o alimentar otro renderizador |
+| `site.registry.json` | `Site.tsx`, envuelto | Instalar la página en un proyecto que ya use shadcn/ui |
+| `AGENTS.md` | una página | Entregarle la página a un agente de código: tokens, bloques y de dónde salen los componentes |
 
 ### Site.tsx
 
@@ -205,6 +207,44 @@ estilos del propio editor  eliminados ← ni caja de texto, ni botones, ni regis
 El filtrado prueba cada selector con `root.matches()` / `root.querySelector()`, quita las pseudoclases y reintenta con el selector base, entra recursivamente en `@media` y descarta el bloque entero cuando nada sobrevive dentro, y conserva `:root` y `@font-face` sin condiciones. **Un selector que no puede analizar se conserva en vez de descartarse**: un archivo algo más grande es mejor que uno roto en silencio.
 
 En tamaño solo ahorra un 16 % (Tailwind nunca fue el problema). La ganancia real es que el sitio exportado ya no arrastra el estilo del propio editor. Ver `lib/export.ts`; **no hay un segundo renderizador**, la composición de bloques existe únicamente en `app/registry.tsx`.
+
+### site.registry.json
+
+Un elemento de [registro shadcn](https://ui.shadcn.com/docs/registry), así que la página se instala igual que cualquier componente de shadcn:
+
+```bash
+npx shadcn@latest add ./site.registry.json
+```
+
+Un solo comando escribe el componente en el directorio que el `components.json` del proyecto llame de componentes y fusiona los 17 tokens del tema con su hoja de estilos. La lista de dependencias está vacía a propósito: `Site.tsx` importa un tipo de React y nada más, y rellenarla haría que la CLI instalase paquetes que el archivo no usa. La CLI acepta una ruta local, así que no hay que alojar nada primero: el archivo que acaba de descargar el navegador sirve donde cayó.
+
+El elemento lleva el mismo código de `Site.tsx`; no es un segundo renderizado de la página. Los tokens viajan con él como `cssVars` porque un componente soltado en un proyecto que define sus propias variables se dibuja con los colores de ese proyecto, que no son los de la página que alguien exportó. Van sin el `--` inicial, porque esos guiones los pone la CLI: escrito `--accent`, el token llega al puente de Tailwind como `var(----accent)`, no resuelve nada, y la instalación informa igualmente de éxito.
+
+### AGENTS.md
+
+Un informe breve para el agente de código que recoge la exportación: `spec.json` es la descripción autorizada de la página, estos son los 17 tokens del tema con sus valores, estos son los bloques que la página tiene de verdad, y estas son las fuentes de componentes relevantes para esos bloques. Está escrito para leerse una vez antes de empezar, no como documentación para una persona.
+
+## Componentes que vale la pena robar
+
+El método es el perezoso: señalarle una buena biblioteca a un agente de código y dejar que elija, adapte y pegue. `lib/sources.ts` es la tabla que lee: cinco bibliotecas, cada una con su papel, su licencia, su comando de instalación, los endpoints legibles por máquina que respondieron cuando se comprobaron, los slots que puede mejorar y la advertencia que muerde.
+
+| Fuente | Qué es | Cómo se coge |
+|---|---|---|
+| [shadcn/ui](https://ui.shadcn.com) | 63 primitivas React accesibles sobre Radix, más la especificación de registro a la que apuntan las otras cuatro | `npx shadcn@latest add <name>` |
+| [beUI](https://beui.dev) | 85 componentes animados como registro compatible con shadcn, con endpoint MCP | `npx shadcn@latest add https://beui.dev/r/<name>.json` |
+| [Rare UI](https://rareui.com) | Unos 20 widgets animados de un solo archivo: navegación gelatinosa, barra lateral por proximidad, contador de odómetro | `npx shadcn@latest add swamimalode07/rare-ui/<name>` |
+| [Transitions](https://transitions.dev) | Unos 44 fragmentos de movimiento con nombre, en CSS puro y con el espacio de nombres `.t-*` | `npx transitions-dev add <slug>` |
+| [Beautiful UI](https://beautifului.dev) | 21 primitivas para interfaces de aplicaciones de IA | Copiar y pegar desde el navegador; ni CLI ni registro |
+
+**Ninguna de las cinco trae una sección de página de marketing.** No hay portada, ni testimonios, ni rejilla de equipo, ni pie de página en todo el conjunto: son primitivas, movimiento y widgets con forma de aplicación. Así que una fuente mejora un bloque que loom ya dibuja; nunca lo sustituye, y `role` es el campo que dice qué clase de mejora cabe esperar. Un agente que lea la tabla como un catálogo de bloques se irá a buscar una portada a shadcn/ui y encontrará `/blocks/login`.
+
+Las licencias tampoco son uniformes. Cuatro son MIT; Transitions usa una licencia propia que prohíbe redistribuir una parte sustancial de la colección, así que sus fragmentos se pueden usar en un sitio pero no incorporarse a este repositorio.
+
+Cada url y cada endpoint de esa tabla se obtuvieron y comprobaron en vez de recordarse, y aun así acabarán pudriéndose:
+
+```bash
+npm run sources   # vuelve a pedir cada endpoint e informa de cuántos componentes sigue listando
+```
 
 ## Los temas son datos
 
@@ -257,7 +297,7 @@ La auditoría necesita el servidor en marcha y `npx playwright install chromium`
 
 
 ```bash
-npm test          # 125, unos 4 s, sin red
+npm test          # 199, unos 1,5 s, sin red
 ```
 
 Cubren **las tres reglas recuperadas del modelo**: el número de argumentos decide rejilla o lista, el número de planes decide tarjeta única o comparativa, y la existencia de una captura de interfaz decide la composición de la portada. Si alguna se desvía, la decisión vuelve en silencio a un modelo que no puede tomarla, así que son las que no deben moverse.
@@ -291,8 +331,11 @@ lib/
   edit.ts              reconocimiento de intención de edición (abanico especulativo)
   export.ts            HTML autocontenido, solo con el CSS en uso
   export-tsx.ts        exportación de fuente React, DOM → JSX
+  export-registry.ts   el mismo código como elemento de registro shadcn, con los tokens
+  export-agents.ts     AGENTS.md: spec, tokens, bloques y de dónde salen los componentes
   i18n.ts              idioma de la interfaz, lee locales/*.json
   demo.ts              reproduce fixtures/ cuando no hay claves
+  sources.ts           cinco bibliotecas de componentes de las que puede tirar un agente, con papeles y advertencias
   *.test.ts            pruebas de lógica pura, sin red
 locales/
   en|zh|ja|ko|es|fr|de|pt.json   traducciones de la interfaz, zh es la referencia
@@ -315,7 +358,7 @@ app/
 
 ## Contribuir
 
-Ver [CONTRIBUTING.md](../CONTRIBUTING.md). Añadir un bloque, un tema o un idioma de interfaz tiene cada uno un camino corto y establecido.
+Ver [CONTRIBUTING.md](../CONTRIBUTING.md). Añadir un bloque, un tema, un idioma de interfaz o una fuente de componentes tiene cada uno un camino corto y establecido.
 
 ## Star History
 

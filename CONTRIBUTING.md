@@ -6,7 +6,7 @@ Get it running first, so you know the environment is sound:
 
 ```bash
 npm install
-npm test        # 125 of them, ~4s, no network
+npm test        # 199 of them, ~1.5s, no network
 npm run dev     # demo mode; no keys needed
 ```
 
@@ -50,6 +50,14 @@ The `description` field is **the rubric Jev chooses from**. Write what kind of b
 ## Adding a site copy language
 
 `LANGUAGES` in `lib/plan.ts` (the rubric Jev judges from) and `LANGUAGE_RULE` / `LENGTH_RULE` in `lib/content-parallel.ts` (the instructions the LLM writes under). Length hints are written for Chinese, so a new language needs a conversion note.
+
+## Adding a component source
+
+`lib/sources.ts` only. A source is one row: name, url, role, a factual one-line summary, licence, the exact install command an agent should run (or `null` when the browser is the only way in), the machine-readable endpoints that answered, the slots it can improve, and the caveat that bites whoever pastes it in without reading.
+
+Fetch before you write. Every url, endpoint and command in that table was checked rather than recalled, and checking is what produced most of the caveats — `/r/index.json` is a 404 on beui.dev, `/registry.json` is a 404 on ui.shadcn.com, and Beautiful UI publishes no machine-readable surface at all. `npm run sources` re-runs those checks and exits non-zero if a declared endpoint stops answering; it needs the network, so it stays a script and never becomes a test.
+
+`role` carries more weight than `blocks`. None of the five sources ships a marketing page section, so a source improves a block loom already renders rather than replacing one, and a `summary` written like a block catalogue sends an agent looking for a hero that does not exist. Check the licence in the same pass: one of the five forbids redistributing a substantial part of its collection, which is fine for a site built with it and not fine for anything vendored here.
 
 ## On what to ask a model
 

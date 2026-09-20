@@ -177,13 +177,15 @@ The editor UI is a separate matter: eight languages, picked from `navigator.lang
 
 ## Export
 
-Three formats, all derived from **the same rendered result**. There is no second copy of the layout code.
+Five formats, all derived from **the same rendered result**. There is no second copy of the layout code.
 
 | Export | Size | For |
 |---|---|---|
 | `site.html` | 36 KB | Put it online, or just double-click it |
 | `Site.tsx` | 34 KB | Keep developing; compiles under `tsc --strict` |
 | `spec.json` | a few KB | Archive it, or feed another renderer |
+| `site.registry.json` | `Site.tsx`, wrapped | Install the page into a project that already uses shadcn/ui |
+| `AGENTS.md` | a page | Hand the page to a coding agent: tokens, blocks, and where components come from |
 
 ### Site.tsx
 
@@ -208,6 +210,44 @@ editor's own styles   removed    ← no input box, buttons or decision log
 Filtering tests each selector with `root.matches()` / `root.querySelector()`, strips pseudo-classes and retries on the base selector, recurses into `@media` and drops the whole block when nothing inside survives, and keeps `:root` and `@font-face` unconditionally. **A selector it cannot parse is kept rather than dropped** — a slightly larger file beats a silently broken one.
 
 Size-wise it only saves 16% (Tailwind was never the problem). The real gain is that the exported site no longer carries the editor's own styling. See `lib/export.ts`; there is **no second renderer**, block layout exists only in `app/registry.tsx`.
+
+### site.registry.json
+
+A [shadcn registry](https://ui.shadcn.com/docs/registry) item, so the page installs the way any shadcn component does:
+
+```bash
+npx shadcn@latest add ./site.registry.json
+```
+
+One command writes the component into whatever directory the project's `components.json` calls components, and merges the theme's 17 tokens into its stylesheet. The dependency list is empty on purpose: `Site.tsx` imports one type from React and nothing else, and padding the list would make the CLI install packages the file never uses. The CLI accepts a local path, so nothing has to be hosted first — the file the browser just downloaded works where it landed.
+
+The item carries the same `Site.tsx` source; it is not a second rendering of the page. The tokens travel with it as `cssVars` because a component dropped into a project that defines its own variables renders in that project's colours, which is not the page anyone exported. They are keyed without the leading `--`, since the CLI adds that itself: written `--accent`, the token reaches the Tailwind bridge as `var(----accent)`, resolves to nothing, and the install still reports success.
+
+### AGENTS.md
+
+A short brief for the coding agent that picks the export up: `spec.json` is the authoritative description of the page, here are the 17 theme tokens with their values, here are the blocks this page actually has, and here are the component sources relevant to those blocks. It is written to be read once before work starts, not as documentation for a person.
+
+## Components worth stealing
+
+The workflow is the lazy one — point a coding agent at a good library and let it pick, adapt and paste. `lib/sources.ts` is the table it reads: five libraries, each with its role, licence, install command, the machine-readable endpoints that answered when they were checked, the slots it can improve, and the caveat that bites.
+
+| Source | What it is | Way in |
+|---|---|---|
+| [shadcn/ui](https://ui.shadcn.com) | 63 accessible React primitives over Radix, plus the registry spec the other four target | `npx shadcn@latest add <name>` |
+| [beUI](https://beui.dev) | 85 animated components as a shadcn-compatible registry, with an MCP endpoint | `npx shadcn@latest add https://beui.dev/r/<name>.json` |
+| [Rare UI](https://rareui.com) | About 20 single-file animated widgets — gooey nav, proximity sidebar, odometer counter | `npx shadcn@latest add swamimalode07/rare-ui/<name>` |
+| [Transitions](https://transitions.dev) | About 44 named motion snippets as plain CSS, namespaced `.t-*` | `npx transitions-dev add <slug>` |
+| [Beautiful UI](https://beautifului.dev) | 21 primitives for AI application interfaces | Copy-paste from the browser; no CLI, no registry |
+
+**None of the five ships a marketing page section.** No hero, no testimonials, no team grid and no footer anywhere in the set — they are primitives, motion and app-shaped widgets. So a source improves a block loom already renders; it never replaces one, and `role` is the field that says which kind of improvement to expect. An agent that reads the table as a block catalogue goes looking for a hero in shadcn/ui and finds `/blocks/login`.
+
+The licences are not uniform either. Four are MIT; Transitions is a custom licence that forbids redistributing a substantial part of the collection, so its snippets can be used on a site but must not be vendored into this repo.
+
+Every url and endpoint in that table was fetched and checked rather than recalled, and all of them will rot eventually:
+
+```bash
+npm run sources   # re-checks each endpoint and reports how many components it still lists
+```
 
 ## Themes are data
 
@@ -261,7 +301,7 @@ The audit needs a running server and `npx playwright install chromium`, so it st
 
 
 ```bash
-npm test          # 125 of them, ~4s, no network
+npm test          # 199 of them, ~1.5s, no network
 ```
 
 They cover **the three rules taken back from the model** — selling-point count decides grid vs list, tier count decides single vs comparison, whether there is a UI screenshot decides the hero layout. If any of these drift, the decision quietly goes back to a model that cannot make it, so they are the ones that must not move.
@@ -295,7 +335,10 @@ lib/
   edit.ts              edit intent recognition (speculative fan-out)
   export.ts            self-contained HTML, only the CSS in use
   export-tsx.ts        React source export, DOM → JSX
+  export-registry.ts   the same source as a shadcn registry item, tokens included
+  export-agents.ts     AGENTS.md: spec, tokens, blocks, and where components come from
   i18n.ts              UI language, reads locales/*.json
+  sources.ts           five component libraries an agent can pull from, with roles and caveats
   *.test.ts            pure-logic tests, no network
 locales/
   en|zh|ja|ko|es|fr|de|pt.json   UI translations, zh is the reference
@@ -316,7 +359,7 @@ app/
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Adding a block, a theme or a UI language each has a short, established path.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Adding a block, a theme, a UI language or a component source each has a short, established path.
 
 ## Star History
 

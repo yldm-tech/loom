@@ -1,5 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
+import { scriptOf } from "./plan";
 
 /**
  * Replay mode for people who have not set up keys yet.
@@ -34,14 +35,15 @@ export async function availableFixtures(): Promise<string[]> {
 function pickFixture(prompt: string, available: string[], locale?: string): string {
   if (locale && available.includes(locale)) return locale;
 
-  const has = (re: RegExp) => re.test(prompt);
-  const order = has(/[가-힯]/)
-    ? ["ko", "en", "zh"]
-    : has(/[぀-ヿ]/)
-      ? ["ja", "en", "zh"]
-      : has(/[一-龥]/)
-        ? ["zh", "en"]
-        : ["en", "zh"];
+  const script = scriptOf(prompt);
+  const order =
+    script === "hangul"
+      ? ["ko", "en", "zh"]
+      : script === "kana"
+        ? ["ja", "en", "zh"]
+        : script === "han"
+          ? ["zh", "en"]
+          : ["en", "zh"];
   return order.find((name) => available.includes(name)) ?? available[0]!;
 }
 

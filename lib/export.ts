@@ -90,10 +90,17 @@ export function usedCssFor(root: Element): string {
   return out.join("\n");
 }
 
-export function buildStandaloneHtml(root: Element, title: string): string {
+/** The copy language as a BCP-47 tag a browser and a screen reader will accept. */
+function htmlLang(language: string): string {
+  if (language === "zh") return "zh-CN";
+  if (language === "zh-Hant") return "zh-TW";
+  return /^[a-z]{2}(-[A-Za-z]+)?$/.test(language) ? language : "en";
+}
+
+export function buildStandaloneHtml(root: Element, title: string, language = "en"): string {
   const css = usedCssFor(root);
   return `<!doctype html>
-<html lang="zh-CN">
+<html lang="${htmlLang(language)}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

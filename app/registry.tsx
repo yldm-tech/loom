@@ -420,7 +420,7 @@ export const { registry } = defineRegistry(catalog, {
                   borderRadius: "calc(var(--radius) * 1.4)",
                 }}
               >
-                <blockquote className="text-[15px] leading-relaxed">「{item.quote}」</blockquote>
+                <blockquote className="quoted text-[15px] leading-relaxed">{item.quote}</blockquote>
                 <figcaption className="pt-5 text-[13px]">
                   <span className="font-medium">{item.name}</span>
                   <span style={{ color: "var(--muted)" }}> · {item.role}</span>

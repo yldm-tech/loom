@@ -12,3 +12,32 @@ body {
     color: #fafafa;
   }
 }
+
+/**
+ * Quotation marks follow the copy language rather than the template's. The
+ * rendered site root carries `lang`, so the exported file keeps these too.
+ * Without this the testimonial block wrapped German and French quotes in 「」.
+ *
+ * These key off the element's own language rather than an ancestor's: the
+ * editor shell and the site it renders are routinely different languages, and
+ * `:lang(zh) .quoted` matched an English site sitting inside a Chinese page.
+ */
+.quoted {
+  quotes: "\201C" "\201D";
+}
+.quoted::before {
+  content: open-quote;
+}
+.quoted::after {
+  content: close-quote;
+}
+.quoted:lang(zh),
+.quoted:lang(ja) {
+  quotes: "「" "」";
+}
+.quoted:lang(de) {
+  quotes: "\201E" "\201C";
+}
+.quoted:lang(fr) {
+  quotes: "\00AB\00A0" "\00A0\00BB";
+}

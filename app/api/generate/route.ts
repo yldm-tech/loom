@@ -27,7 +27,7 @@ export async function POST(request: Request) {
         // than refusing to start. Every event is flagged so the UI can say so.
         const events = demo
           ? replay(prompt, signal, locale)
-          : composePlanned(jevKey!, llmKey!, prompt, signal);
+          : composePlanned(jevKey!, llmKey!, prompt, signal, locale);
         for await (const event of events) send(event);
       } catch (error) {
         send({

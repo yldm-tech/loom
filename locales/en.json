@@ -30,6 +30,8 @@
   "arbitrary": " (any)",
   "lines": "lines",
   "demoBanner": "Demo mode: replaying a real recorded run. Set JEV_TOKEN and LLM_TOKEN to generate live.",
+  "errorTitle": "Generation stopped",
+  "errorBody": "The blocks below never received their copy. Fix the problem and generate again.",
   "archetypeLabels": {
     "landing": "Landing page",
     "local": "Local business",

@@ -58,16 +58,26 @@ describe("detectLocale", () => {
 
   it("matches on the primary subtag, not the full tag", () => {
     expect(withLanguages(["zh-Hans-CN"])).toBe("zh");
+    expect(withLanguages(["pt-BR"])).toBe("pt");
+    expect(withLanguages(["es-419"])).toBe("es");
     expect(withLanguages(["ja-JP"])).toBe("ja");
     expect(withLanguages(["ko-KR"])).toBe("ko");
     expect(withLanguages(["en-GB"])).toBe("en");
   });
 
   it("takes the first supported language, skipping ones it cannot serve", () => {
-    expect(withLanguages(["de-DE", "fr-FR", "ja"])).toBe("ja");
+    expect(withLanguages(["is-IS", "sw-KE", "ja"])).toBe("ja");
   });
 
   it("defaults to English when nothing matches", () => {
-    expect(withLanguages(["de-DE"])).toBe("en");
+    expect(withLanguages(["is-IS"])).toBe("en");
+  });
+
+  it("serves every locale it claims to support", () => {
+    // A tag that maps to nothing would silently fall back to English, which
+    // looks like the switcher is broken rather than the detection.
+    for (const locale of UI_LOCALES) {
+      expect(withLanguages([`${locale}-XX`]), `${locale} is not detected`).toBe(locale);
+    }
   });
 });

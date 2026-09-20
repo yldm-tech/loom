@@ -75,9 +75,13 @@ Do not write tests that need the network. All of them together run in about thre
 
 ## Docs
 
-There are four READMEs: `README.md` (English, the reference) and `docs/README.{zh,ja,ko}.md`.
+There are eight READMEs: `README.md` (English, the reference) and `docs/README.{zh,ja,ko,es,fr,de,pt}.md`.
 
-Substantive changes should land in all four. If you only read one or two of those languages, change the ones you can and say so in the PR; the rest can follow. **A translation lagging behind is better than a machine-translated one.**
+Substantive changes should land in all of them. If you only read one or two of those languages, change the ones you can and say so in the PR; the rest can follow. **A translation lagging behind is better than a machine-translated one.**
+
+Four of them have screenshots in their own language; the rest fall back to the English captures. A test enforces that a translation uses its own set when one exists and the English set otherwise, never a mix. To give a language its own, record a run with the UI in that locale and add the three images.
+
+Tests also check that all eight share the same heading outline level for level and quote the same measured figures. Decimal separators differ by language and are normalised before comparison, so `0,16` and `0.16` count as the same number.
 
 ## Conduct
 

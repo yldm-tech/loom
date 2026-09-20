@@ -23,6 +23,10 @@ const LANGUAGE_RULE: Record<string, string> = {
   en: "Write every field in natural English. Do not use Chinese.",
   ja: "すべてのフィールドを自然な日本語で書いてください。中国語は使わないこと。",
   ko: "모든 필드를 자연스러운 한국어로 작성하세요. 중국어는 사용하지 마세요.",
+  es: "Escribe todos los campos en español natural. No uses chino ni inglés.",
+  fr: "Rédige tous les champs en français naturel. N'utilise ni chinois ni anglais.",
+  de: "Schreibe alle Felder in natürlichem Deutsch. Verwende weder Chinesisch noch Englisch.",
+  pt: "Escreva todos os campos em português natural. Não use chinês nem inglês.",
   "zh-Hant": "全部用繁體中文書寫，用詞遵循台灣用法。",
 };
 
@@ -32,6 +36,10 @@ const LENGTH_RULE: Record<string, string> = {
   en: "字数限制是按中文字数写的；写英文时按同等信息量换算，通常是字符数的两到三倍。",
   ja: "字数制限は中国語基準です。日本語では同等の情報量になるよう調整してください。",
   ko: "字数制限は中国語基準です。韓国語では同等の情報量になるよう調整してください。",
+  es: "Los límites de longitud están pensados para el chino; en español ajusta a una cantidad de información equivalente.",
+  fr: "Les limites de longueur sont pensées pour le chinois ; en français, visez une quantité d'information équivalente.",
+  de: "Die Längenangaben sind für Chinesisch gedacht; im Deutschen auf gleichwertigen Informationsgehalt anpassen.",
+  pt: "Os limites de tamanho foram escritos para o chinês; em português, ajuste para uma quantidade equivalente de informação.",
   "zh-Hant": "",
 };
 

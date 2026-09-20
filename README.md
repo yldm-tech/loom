@@ -1,4 +1,4 @@
-**English** · [简体中文](docs/README.zh.md) · [日本語](docs/README.ja.md) · [한국어](docs/README.ko.md)
+**English** · [简体中文](docs/README.zh.md) · [日本語](docs/README.ja.md) · [한국어](docs/README.ko.md) · [Español](docs/README.es.md) · [Français](docs/README.fr.md) · [Deutsch](docs/README.de.md) · [Português](docs/README.pt.md)
 
 # loom
 
@@ -63,7 +63,7 @@ keep it                                                                  judgeme
 
 | Judgement | Confidence |
 |---|---|
-| Copy language (1 of 4) | 0.66 – 1.00 |
+| Copy language (1 of 9) | 0.66 – 1.00 |
 | Visual theme (1 of 6) | 0.98 – 1.00 |
 | Page archetype (1 of 6) | 0.62 – 1.00 |
 | Edit intent (1 of 6) | 0.98 – 1.00 |
@@ -150,9 +150,9 @@ The second line is the point. **What you write in is not what you want written**
 
 The `0.66` on the Brooklyn line is also correct: an English sentence that never states a target language makes `en` an inference rather than an instruction, so the probability should spread.
 
-Supports `zh` / `en` / `ja` / `ko` / `zh-Hant`. Length hints are written for Chinese, so other languages get a conversion note appended.
+Supports `en` / `zh` / `ja` / `ko` / `es` / `fr` / `de` / `pt` / `zh-Hant`. Length hints are written for Chinese, so other languages get a conversion note appended.
 
-The editor UI is a separate matter: Chinese, English, Japanese and Korean, picked from `navigator.languages` and switchable by hand. Translations live in `locales/*.json`; adding a language means adding a file and one line. **`zh.json` is the reference and tests assert the other files carry exactly its keys** — a half-finished translation fails CI instead of silently falling back to Chinese at runtime.
+The editor UI is a separate matter: eight languages, picked from `navigator.languages` and switchable by hand. Translations live in `locales/*.json`; adding a language means adding a file and one line. **`zh.json` is the reference and tests assert the other files carry exactly its keys** — a half-finished translation fails CI instead of silently falling back to Chinese at runtime.
 
 ## Export
 
@@ -226,7 +226,7 @@ The archetype decides which blocks are **required** — no model gets to drop a 
 ## Tests
 
 ```bash
-npm test          # 39 of them, 2.5s, no network
+npm test          # 78 of them, ~3s, no network
 ```
 
 They cover **the three rules taken back from the model** — selling-point count decides grid vs list, tier count decides single vs comparison, whether there is a UI screenshot decides the hero layout. If any of these drift, the decision quietly goes back to a model that cannot make it, so they are the ones that must not move.
@@ -263,7 +263,7 @@ lib/
   i18n.ts              UI language, reads locales/*.json
   *.test.ts            pure-logic tests, no network
 locales/
-  zh|en|ja|ko.json     UI translations, zh is the reference
+  en|zh|ja|ko|es|fr|de|pt.json   UI translations, zh is the reference
 app/
   page.tsx             the editor, stream consumption, client-side retheme/restyle
   registry.tsx         what blocks look like, all via CSS variables

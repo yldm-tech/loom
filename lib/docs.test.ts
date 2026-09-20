@@ -13,6 +13,10 @@ const DOCS = {
   zh: "docs/README.zh.md",
   ja: "docs/README.ja.md",
   ko: "docs/README.ko.md",
+  es: "docs/README.es.md",
+  fr: "docs/README.fr.md",
+  de: "docs/README.de.md",
+  pt: "docs/README.pt.md",
 } as const;
 
 const read = (path: string) => readFileSync(join(ROOT, path), "utf8");
@@ -88,19 +92,26 @@ describe("READMEs", () => {
     }
   });
 
-  it("shows each language its own screenshots", () => {
-    // A Chinese README illustrated with an English site is backwards; the
-    // images are of generated output, so they have a language of their own.
+  it("shows its own screenshots, or falls back to English wholesale", () => {
+    // A Chinese README illustrated with an English site is backwards, so a
+    // language with its own captures must use them. A language without any
+    // falls back to English — but consistently, never a mix, which would leave
+    // a reader looking at two different runs side by side.
+    const { existsSync } = require("node:fs") as typeof import("node:fs");
     for (const [lang, text] of Object.entries(texts)) {
       const names = [...text.matchAll(/<img[^>]+src="[^"]*?([\w.-]+\.(?:png|jpg|gif|webp))"/g)].map(
         (m) => m[1]!,
       );
       expect(names.length, `${lang} embeds no local images`).toBeGreaterThan(0);
-      for (const name of names) {
-        expect(name, `${lang} embeds ${name}, which belongs to another language`).toMatch(
-          new RegExp(`-${lang}\\.(gif|jpg|png|webp)$`),
-        );
-      }
+
+      const suffixes = new Set(names.map((n) => n.match(/-([a-z-]+)\.\w+$/)?.[1]));
+      expect(suffixes.size, `${lang} mixes screenshots from different runs`).toBe(1);
+
+      const used = [...suffixes][0]!;
+      const ownCapturesExist = existsSync(join(ROOT, "docs", "images", `generate-${lang}.webp`));
+      expect(used, `${lang} should use ${ownCapturesExist ? "its own" : "the English"} captures`).toBe(
+        ownCapturesExist ? lang : "en",
+      );
     }
   });
 
@@ -128,8 +139,11 @@ describe("READMEs", () => {
     // Confidence figures are evidence, not prose: they must not drift in translation.
     // No lookahead here — CJK punctuation does not put a space after a number,
     // so anchoring on what follows would compare different things per language.
+    // Spanish, French, German and Portuguese write the decimal separator as a
+    // comma, which is correct localisation rather than drift, so both forms
+    // normalise to the same value before comparison.
     const figures = (text: string) =>
-      [...text.matchAll(/\b0\.\d\d\b/g)].map((m) => m[0]).sort();
+      [...text.matchAll(/\b0[.,]\d\d\b/g)].map((m) => m[0].replace(",", ".")).sort();
     const reference = figures(texts.en!);
     for (const [lang, text] of Object.entries(texts)) {
       expect(figures(text), `${lang} quotes different numbers`).toEqual(reference);

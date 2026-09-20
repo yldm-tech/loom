@@ -1,4 +1,4 @@
-[English](../README.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md)
+[English](../README.md) · **简体中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md) · [Português](README.pt.md)
 
 # loom
 
@@ -63,7 +63,7 @@
 
 | 判断 | 置信度 |
 |---|---|
-| 文案语言（4 选 1） | 0.66 – 1.00 |
+| 文案语言（9 选 1） | 0.66 – 1.00 |
 | 视觉主题（6 选 1） | 0.98 – 1.00 |
 | 页面原型（6 选 1） | 0.62 – 1.00 |
 | 修改意图（6 选 1） | 0.98 – 1.00 |
@@ -150,9 +150,9 @@ A small bakery in Brooklyn                → en @0.66
 
 Brooklyn 那条 `0.66` 偏低也是对的：一句英文描述没有明示要什么语言，`en` 是推断不是明示，概率该分散一些。
 
-支持 `zh` / `en` / `ja` / `ko` / `zh-Hant`。字数约束是按中文写的，其它语言会附一条换算提示。
+支持 `en` / `zh` / `ja` / `ko` / `es` / `fr` / `de` / `pt` / `zh-Hant`。字数约束是按中文写的，其它语言会附一条换算提示。
 
-编辑器界面本身是另一回事：中日英韩四种，按 `navigator.languages` 自动选，也能手动切。翻译在 `locales/*.json`，加一种语言就是加一个文件加一行。**`zh.json` 是基准，测试断言其它文件的 key 完全一致**——半拉翻译会让 CI 红，而不是运行时静默回落成中文。
+编辑器界面本身是另一回事：八种语言，按 `navigator.languages` 自动选，也能手动切。翻译在 `locales/*.json`，加一种语言就是加一个文件加一行。**`zh.json` 是基准，测试断言其它文件的 key 完全一致**——半拉翻译会让 CI 红，而不是运行时静默回落成中文。
 
 ## 导出
 
@@ -226,7 +226,7 @@ Brooklyn 那条 `0.66` 偏低也是对的：一句英文描述没有明示要什
 ## 测试
 
 ```bash
-npm test          # 39 个，2.5 秒，不碰网络
+npm test          # 78 个，约 3 秒，不碰网络
 ```
 
 测的是**三条被从模型手里拿回来的规则**——卖点条数决定网格还是列表、价格档数决定单档还是对比、有没有界面截图决定首屏版式。这几条一旦回归，决策就悄悄还给了一个答不了的模型，所以它们最不该漂。
@@ -264,7 +264,7 @@ lib/
   demo.ts              无 key 时回放 fixtures/ 里的真实录制
   *.test.ts            纯逻辑的测试，不碰网络
 locales/
-  zh|en|ja|ko.json     界面翻译，zh 为基准
+  en|zh|ja|ko|es|fr|de|pt.json   界面翻译，zh 为基准
 fixtures/
   zh|en|ja|ko.jsonl    真实录制的运行，供演示模式回放
 app/

@@ -222,8 +222,20 @@ O arquétipo decide quais blocos são **obrigatórios** — nenhum modelo pode r
 
 ## Testes
 
+A acessibilidade é verificada duas vezes, de duas maneiras diferentes.
+
+`npm test` recalcula o contraste WCAG a partir dos tokens do tema — sem navegador, então roda no CI. Cada par destaque/texto, faixa/texto e fundo/texto precisa passar de 4,5:1; o texto atenuado, que nunca é o único, precisa passar de 3:1.
+
 ```bash
-npm test          # 98 deles, cerca de 4 s, sem rede
+npm run dev          # o modo demo já basta
+npm run audit:a11y   # axe-core sobre o site gerado, nos seis temas
+```
+
+A auditoria precisa do servidor no ar e de `npx playwright install chromium`, por isso continua como script e não entra no CI. Ela encontrou exatamente um problema real: o destaque do `coral` era `#e2553d`, que com texto branco dá 3,75:1, abaixo de AA. Escurecido para `#c53a22` (5,25:1), mesmo matiz. Os seis temas agora não relatam nenhuma violação.
+
+
+```bash
+npm test          # 125 deles, cerca de 4 s, sem rede
 ```
 
 Eles cobrem **as três regras retomadas do modelo**: a quantidade de diferenciais decide grade ou lista, a quantidade de planos decide cartão único ou comparativo, e a existência de uma captura de interface decide o layout do topo. Se alguma delas escorregar, a decisão volta em silêncio para um modelo que não consegue tomá-la — são as que não podem se mexer.

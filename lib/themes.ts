@@ -1,6 +1,10 @@
 /**
  * Visual themes as a closed, mutually exclusive set.
  *
+ * Every accent/accentText pair clears WCAG AA (4.5:1) for body-sized text, and
+ * a test recomputes that from these values — a generator that emits unreadable
+ * buttons is worse than one with fewer themes.
+ *
  * Which one suits a business is a judgement that lives in the user's own
  * description, so it goes to jev as a single Choice — the question shape that
  * held up at 96 options with no cross-contamination. Code never guesses here
@@ -104,7 +108,7 @@ export const THEMES: Record<string, Theme> = {
       "明亮珊瑚橙 + 柔粉，活泼、年轻、有消费感。适合社交产品、电商、教育、健身、宠物、以及任何面向大众消费者、希望显得轻快好接近的业务。",
     tokens: {
       bg: "#ffffff", surface: "#fff7f5", text: "#2a1618", muted: "#7d5f60",
-      border: "#f7ddd8", accent: "#e2553d", accentText: "#ffffff", accentSoft: "#ffeae5",
+      border: "#f7ddd8", accent: "#c53a22", accentText: "#ffffff", accentSoft: "#ffeae5",
       band: "#43201c", bandText: "#fff7f5", bandMuted: "#d8a79c",
       heroFrom: "#ffeae5", heroTo: "#ffffff",
       radius: "20px", font: SANS, display: SANS, tracking: "-0.02em",

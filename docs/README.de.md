@@ -222,8 +222,20 @@ Der Archetyp legt fest, welche Blöcke **Pflicht** sind — kein Modell darf den
 
 ## Tests
 
+Barrierefreiheit wird zweimal geprüft, auf zwei verschiedene Arten.
+
+`npm test` rechnet den WCAG-Kontrast aus den Theme-Tokens neu aus — ohne Browser, läuft also in der CI. Jedes Paar aus Akzent/Text, Band/Text und Hintergrund/Fließtext muss 4,5:1 überschreiten; gedämpfter Text, der nie allein Information trägt, muss 3:1 überschreiten.
+
 ```bash
-npm test          # 98 Stück, rund 4 s, ohne Netz
+npm run dev          # der Demomodus genügt
+npm run audit:a11y   # axe-core auf der erzeugten Seite, alle sechs Themes
+```
+
+Die Prüfung braucht einen laufenden Server und `npx playwright install chromium` und bleibt deshalb ein Skript außerhalb der CI. Sie fand genau ein echtes Problem: Der Akzent von `coral` war `#e2553d` und ergab mit weißer Schrift 3,75:1 — unter AA. Auf `#c53a22` (5,25:1) abgedunkelt, gleicher Farbton. Alle sechs Themes melden jetzt keine Verstöße.
+
+
+```bash
+npm test          # 125 Stück, rund 4 s, ohne Netz
 ```
 
 Sie decken **die drei dem Modell abgenommenen Regeln** ab: Die Anzahl der Verkaufsargumente entscheidet Raster oder Liste, die Anzahl der Preisstufen entscheidet Einzelkarte oder Vergleich, und ob es einen Oberflächen-Screenshot gibt, entscheidet das Layout des Kopfbereichs. Driftet eine davon, geht die Entscheidung still an ein Modell zurück, das sie nicht treffen kann — sie dürfen sich also nicht bewegen.

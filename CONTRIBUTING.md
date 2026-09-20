@@ -6,7 +6,7 @@ Get it running first, so you know the environment is sound:
 
 ```bash
 npm install
-npm test        # 98 of them, ~4s, no network
+npm test        # 125 of them, ~4s, no network
 npm run dev     # demo mode; no keys needed
 ```
 
@@ -34,6 +34,8 @@ Then add the slot to `SLOTS` in `lib/plan.ts`, place it in `SLOT_ORDER`, and han
 ## Adding a theme
 
 `lib/themes.ts` only. A theme is a complete token set: palette, typeface, radius, gradients.
+
+Contrast is not negotiable: `npm test` recomputes WCAG ratios from your token values and fails below 4.5:1 for anything carrying real text. `npm run audit:a11y` then checks what a browser actually renders. A theme that ships unreadable buttons is a defect in the generator, not a matter of taste.
 
 The `description` field is **the rubric Jev chooses from**. Write what kind of business and mood it suits, not that the colour is nice. Measured: whether a description carries a decidable rule is the difference between 0.98 and 0.63 confidence.
 

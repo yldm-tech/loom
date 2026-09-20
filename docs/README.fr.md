@@ -222,8 +222,20 @@ L'archétype décide quels blocs sont **obligatoires** : aucun modèle n'a le dr
 
 ## Tests
 
+L'accessibilité est vérifiée deux fois, de deux manières différentes.
+
+`npm test` recalcule le contraste WCAG à partir des tokens du thème — sans navigateur, donc en CI. Chaque paire accent/texte, bandeau/texte et fond/texte doit dépasser 4,5:1 ; le texte atténué, qui n'est jamais le seul porteur d'information, doit dépasser 3:1.
+
 ```bash
-npm test          # 98, environ 4 s, sans réseau
+npm run dev          # le mode démo suffit
+npm run audit:a11y   # axe-core sur le site généré, les six thèmes
+```
+
+L'audit a besoin d'un serveur lancé et de `npx playwright install chromium`, il reste donc un script et n'entre pas dans la CI. Il a trouvé exactement un vrai problème : l'accent de `coral` valait `#e2553d`, soit 3,75:1 avec du texte blanc, en dessous du seuil AA. Assombri en `#c53a22` (5,25:1), même teinte. Les six thèmes ne signalent plus aucune violation.
+
+
+```bash
+npm test          # 125, environ 4 s, sans réseau
 ```
 
 Ils couvrent **les trois règles reprises au modèle** : le nombre d'arguments décide grille ou liste, le nombre de paliers décide carte unique ou comparatif, et la présence d'une capture d'interface décide la mise en page de l'en-tête. Si l'une dérive, la décision retourne en silence à un modèle incapable de la prendre : ce sont celles qui ne doivent pas bouger.

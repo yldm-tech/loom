@@ -225,8 +225,20 @@ The archetype decides which blocks are **required** — no model gets to drop a 
 
 ## Tests
 
+Accessibility is checked twice, in two different ways.
+
+`npm test` recomputes WCAG contrast from the theme token values — no browser, so it runs in CI. Every accent/text, band/text and background/text pair must clear 4.5:1; muted text, which is only ever secondary, must clear 3:1.
+
 ```bash
-npm test          # 98 of them, ~4s, no network
+npm run dev          # demo mode is enough
+npm run audit:a11y   # axe-core against the generated site, all six themes
+```
+
+The audit needs a running server and `npx playwright install chromium`, so it stays a script rather than part of CI. It found exactly one real problem: `coral`'s accent was `#e2553d`, which gives white text 3.75:1 — below AA. Darkened to `#c53a22` (5.25:1), same hue. All six themes now report no violations.
+
+
+```bash
+npm test          # 125 of them, ~4s, no network
 ```
 
 They cover **the three rules taken back from the model** — selling-point count decides grid vs list, tier count decides single vs comparison, whether there is a UI screenshot decides the hero layout. If any of these drift, the decision quietly goes back to a model that cannot make it, so they are the ones that must not move.

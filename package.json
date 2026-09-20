@@ -11,7 +11,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "audit:a11y": "node scripts/audit-a11y.mjs"
   },
   "dependencies": {
     "@json-render/core": "0.21.0",
@@ -27,6 +28,7 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "jsdom": "^25.0.1",
+    "playwright": "^1.63.0",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.2",
     "vitest": "^3.2.7"

@@ -6,6 +6,7 @@ import type { Spec } from "@json-render/core";
 import { registry } from "./registry";
 import { THEMES } from "@/lib/themes";
 import { elementsFor, type SiteContent } from "@/lib/content";
+import { buildStandaloneHtml } from "@/lib/export";
 
 type StepInfo = {
   choice: string;
@@ -198,32 +199,7 @@ export default function Page() {
   const exportHtml = useCallback(() => {
     const node = previewRef.current?.firstElementChild;
     if (!node) return;
-
-    let css = "";
-    for (const sheet of Array.from(document.styleSheets)) {
-      try {
-        for (const rule of Array.from(sheet.cssRules)) css += `${rule.cssText}\n`;
-      } catch {
-        // Cross-origin stylesheet: unreadable by design, nothing to inline.
-      }
-    }
-
-    const title = pickedTheme ? `${prompt.slice(0, 24)}` : "生成的网站";
-    const html = `<!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${title}</title>
-<style>
-${css}
-</style>
-</head>
-<body>
-${node.outerHTML}
-</body>
-</html>`;
-
+    const html = buildStandaloneHtml(node, pickedTheme ? prompt.slice(0, 40) : "loom");
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

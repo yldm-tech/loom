@@ -390,7 +390,7 @@ export const { registry } = defineRegistry(catalog, {
                       border: tier.highlighted ? "none" : "1px solid var(--border)",
                     }}
                   >
-                    选择{tier.name}
+                    {String(props.cta)}
                   </button>
                 </div>
               ))}
@@ -599,11 +599,14 @@ export const { registry } = defineRegistry(catalog, {
             {props.title}
           </h2>
           <dl className="grid gap-6 pt-8 sm:grid-cols-3">
-            {[
-              ["地址", props.address],
-              ["时间", props.hours],
-              ["电话", props.phone],
-            ].map(([label, value]) => (
+            {(() => {
+              const labels = props.labels as { address: string; hours: string; phone: string };
+              return [
+                [labels.address, props.address],
+                [labels.hours, props.hours],
+                [labels.phone, props.phone],
+              ];
+            })().map(([label, value]) => (
               <div key={String(label)}>
                 <dt
                   className="text-[12px] uppercase tracking-widest"

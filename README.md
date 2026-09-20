@@ -16,6 +16,10 @@
 
 Describe your business in a sentence, get a landing page you can actually use.
 
+<p align="center">
+  <img src="docs/images/stream.gif" alt="Blocks filling into a themed skeleton as copy arrives" width="640">
+</p>
+
 ```
 "A specialty coffee shop in Brooklyn, pour-over only"
 
@@ -23,6 +27,8 @@ Describe your business in a sentence, get a landing page you can actually use.
 4.5s   hero and footer filled with real copy
 13s    every block landed
 ```
+
+The skeleton is themed from the first frame, because the plan lands before any copy does. Recorded in demo mode, so this is exactly what you see after `npm run dev` with no keys.
 
 What sets this apart is not that AI builds a site. It is that **three layers each do only what they are good at**.
 
@@ -174,6 +180,13 @@ Filtering tests each selector with `root.matches()` / `root.querySelector()`, st
 Size-wise it only saves 16% (Tailwind was never the problem). The real gain is that the exported site no longer carries the editor's own styling. See `lib/export.ts`; there is **no second renderer**, block layout exists only in `app/registry.tsx`.
 
 ## Themes are data
+
+<p align="center">
+  <img src="docs/images/themes.jpg" alt="The same generated site under all six themes" width="820">
+</p>
+
+The same generated copy under all six themes. Switching is a single client-side prop change — no model call, no regeneration.
+
 
 Six themes, each a complete set of design tokens. `app/registry.tsx` contains **no hex values at all** — everything reads from CSS variables:
 

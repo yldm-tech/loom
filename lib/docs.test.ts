@@ -60,6 +60,32 @@ describe("READMEs", () => {
     expect(counts[0]).toBeGreaterThan(0);
   });
 
+  it("references images that actually exist, from every translation", () => {
+    // A README promising a screenshot that 404s is worse than one with none.
+    const { existsSync } = require("node:fs") as typeof import("node:fs");
+    for (const [lang, text] of Object.entries(texts)) {
+      const srcs = [...text.matchAll(/<img[^>]+src="([^"]+)"/g)].map((m) => m[1]!);
+      const local = srcs.filter((src) => !src.startsWith("http"));
+      expect(local.length, `${lang} embeds no local images`).toBeGreaterThan(0);
+      for (const src of local) {
+        const from = lang === "en" ? ROOT : join(ROOT, "docs");
+        expect(existsSync(join(from, src)), `${lang} points at a missing ${src}`).toBe(true);
+      }
+    }
+  });
+
+  it("embeds the same set of images everywhere", () => {
+    const names = (text: string) =>
+      [...text.matchAll(/<img[^>]+src="[^"]*?([\w.-]+\.(?:png|jpg|gif))"/g)]
+        .map((m) => m[1]!)
+        .sort();
+    const reference = names(texts.en!);
+    expect(reference.length).toBeGreaterThan(0);
+    for (const [lang, text] of Object.entries(texts)) {
+      expect(names(text), `${lang} embeds a different set of images`).toEqual(reference);
+    }
+  });
+
   it("all show the star history chart", () => {
     for (const [lang, text] of Object.entries(texts)) {
       expect(text, `${lang} is missing the star history chart`).toContain(

@@ -55,6 +55,7 @@ export const catalog = defineCatalog(schema, {
     Pricing: {
       props: z.object({
         title: z.string(),
+        cta: z.string(),
         tiers: z.array(
           z.object({
             name: z.string(),
@@ -100,6 +101,11 @@ export const catalog = defineCatalog(schema, {
         hours: z.string(),
         phone: z.string(),
         note: z.string(),
+        labels: z.object({
+          address: z.string(),
+          hours: z.string(),
+          phone: z.string(),
+        }),
       }),
     },
     Comparison: {

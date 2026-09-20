@@ -56,6 +56,10 @@ export type SiteContent = {
   comparisonThem: string;
   comparison: { label: string; us: string; them: string }[];
   teamTitle: string;
+  testimonialsTitle: string;
+  faqTitle: string;
+  pricingCta: string;
+  contactLabels: { address: string; hours: string; phone: string };
   team: { name: string; role: string; bio: string }[];
 };
 
@@ -138,19 +142,20 @@ export function elementsFor(content: SiteContent) {
     pricing_single: {
       type: "Pricing",
       props: {
+        cta: content.pricingCta,
         title: content.pricingTitle,
         tiers: (content.tiers ?? []).slice(0, 1).map((t) => ({ ...t, highlighted: true })),
       },
     },
     pricing_multi: {
       type: "Pricing",
-      props: { title: content.pricingTitle, tiers: content.tiers },
+      props: { title: content.pricingTitle, tiers: content.tiers, cta: content.pricingCta },
     },
     testimonials: {
       type: "Testimonials",
-      props: { title: "他们怎么说", items: content.testimonials },
+      props: { title: content.testimonialsTitle, items: content.testimonials },
     },
-    faq: { type: "FAQ", props: { title: "常见问题", items: content.faq } },
+    faq: { type: "FAQ", props: { title: content.faqTitle, items: content.faq } },
     cta_band: {
       type: "CTABand",
       props: { title: content.ctaTitle, body: content.ctaBody, cta: content.primaryCta },
@@ -174,6 +179,7 @@ export function elementsFor(content: SiteContent) {
         address: content.address,
         hours: content.hours,
         phone: content.phone,
+        labels: content.contactLabels,
         note: content.contactNote,
       },
     },

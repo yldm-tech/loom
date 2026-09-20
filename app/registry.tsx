@@ -504,6 +504,131 @@ export const { registry } = defineRegistry(catalog, {
       </footer>
     ),
 
+
+    Gallery: ({ props }) => (
+      <section className={`${SECTION} blk-in`}>
+        <div className={INNER}>
+          <h2
+            className="text-center text-3xl font-bold"
+            style={{ fontFamily: "var(--display)", letterSpacing: "var(--tracking)" }}
+          >
+            {props.title}
+          </h2>
+          <p className="pt-3 text-center text-[15px]" style={{ color: "var(--muted)" }}>
+            {props.caption}
+          </p>
+          <div className="grid gap-5 pt-10 sm:grid-cols-2 md:grid-cols-3">
+            {(props.items as { title: string; note: string }[]).map((item, index) => (
+              <figure key={item.title}>
+                {/* No image generation here: the tile is an honest placeholder
+                    carrying the caption the copy layer wrote. */}
+                <div
+                  className="flex aspect-[4/3] items-end p-4"
+                  style={{
+                    background: `color-mix(in srgb, var(--accent) ${6 + (index % 3) * 5}%, var(--surface))`,
+                    border: "1px solid var(--border)",
+                    borderRadius: "calc(var(--radius) * 1.4)",
+                  }}
+                >
+                  <span className="text-[12px]" style={{ color: "var(--muted)" }}>
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                </div>
+                <figcaption className="pt-3">
+                  <div className="text-[15px] font-medium">{item.title}</div>
+                  <div className="pt-0.5 text-[13px]" style={{ color: "var(--muted)" }}>
+                    {item.note}
+                  </div>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+    ),
+
+    Steps: ({ props }) => {
+      const items = props.items as { title: string; body: string }[];
+      return (
+        <section className={`${SECTION} blk-in`} style={{ background: "var(--surface)" }}>
+          <div className={INNER}>
+            <h2
+              className="text-center text-3xl font-bold"
+              style={{ fontFamily: "var(--display)", letterSpacing: "var(--tracking)" }}
+            >
+              {props.title}
+            </h2>
+            <ol className="grid gap-8 pt-12 md:grid-cols-4">
+              {items.map((item, index) => (
+                <li key={item.title} className="relative">
+                  <div
+                    className="flex h-9 w-9 items-center justify-center text-[14px] font-semibold"
+                    style={{
+                      background: "var(--accent)",
+                      color: "var(--accent-text)",
+                      borderRadius: "999px",
+                    }}
+                  >
+                    {index + 1}
+                  </div>
+                  {index < items.length - 1 && (
+                    <span
+                      className="absolute left-9 top-4 hidden h-px md:block"
+                      style={{ right: "-2rem", background: "var(--border)" }}
+                    />
+                  )}
+                  <h3 className="pt-4 text-[16px] font-semibold">{item.title}</h3>
+                  <p className="pt-1 text-[14px] leading-relaxed" style={{ color: "var(--muted)" }}>
+                    {item.body}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+      );
+    },
+
+    Contact: ({ props }) => (
+      <section className={`${SECTION} blk-in`}>
+        <div className={`${INNER} max-w-3xl`}>
+          <h2
+            className="text-3xl font-bold"
+            style={{ fontFamily: "var(--display)", letterSpacing: "var(--tracking)" }}
+          >
+            {props.title}
+          </h2>
+          <dl className="grid gap-6 pt-8 sm:grid-cols-3">
+            {[
+              ["地址", props.address],
+              ["时间", props.hours],
+              ["电话", props.phone],
+            ].map(([label, value]) => (
+              <div key={String(label)}>
+                <dt
+                  className="text-[12px] uppercase tracking-widest"
+                  style={{ color: "var(--muted)" }}
+                >
+                  {label}
+                </dt>
+                <dd className="pt-1.5 text-[15px] leading-relaxed">{String(value)}</dd>
+              </div>
+            ))}
+          </dl>
+          <p
+            className="mt-8 p-4 text-[14px]"
+            style={{
+              background: "var(--accent-soft)",
+              borderRadius: "calc(var(--radius) * 1.4)",
+              color: "var(--muted)",
+            }}
+          >
+            {props.note}
+          </p>
+        </div>
+      </section>
+    ),
+
     /** Placeholder that mimics the real block's shape until its copy arrives. */
     Skeleton: ({ props }) => {
       const kind = String(props.kind ?? "section");

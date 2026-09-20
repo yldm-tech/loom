@@ -41,6 +41,16 @@ export type SiteContent = {
   footerColumns: string[];
   footerNote: string;
   visualKind?: "interface" | "product" | "scene" | "none";
+  galleryTitle: string;
+  galleryCaption: string;
+  gallery: { title: string; note: string }[];
+  stepsTitle: string;
+  steps: { title: string; body: string }[];
+  contactTitle: string;
+  address: string;
+  hours: string;
+  phone: string;
+  contactNote: string;
 };
 
 /** Fill every block template with the generated content. */
@@ -138,6 +148,28 @@ export function elementsFor(content: SiteContent) {
     cta_band: {
       type: "CTABand",
       props: { title: content.ctaTitle, body: content.ctaBody, cta: content.primaryCta },
+    },
+    gallery: {
+      type: "Gallery",
+      props: {
+        title: content.galleryTitle,
+        caption: content.galleryCaption,
+        items: content.gallery,
+      },
+    },
+    steps: {
+      type: "Steps",
+      props: { title: content.stepsTitle, items: content.steps },
+    },
+    contact: {
+      type: "Contact",
+      props: {
+        title: content.contactTitle,
+        address: content.address,
+        hours: content.hours,
+        phone: content.phone,
+        note: content.contactNote,
+      },
     },
     footer: {
       type: "Footer",

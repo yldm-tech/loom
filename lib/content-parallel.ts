@@ -112,6 +112,12 @@ tiers 的档数按这个业务真实有几种卖法来定，1 到 3 档：
 - 只有一种价格或完全免费 → 1 档
 - 分套餐、分规格、分订阅层级 → 2 到 3 档
 不适合订阅制的业务（餐饮、零售、服务），tiers 就用套餐 / 规格 / 价位来表达。不要硬凑成三档。`,
+  place: `${BASE}
+字段：{"galleryTitle":"作品/环境展示区标题 6-12 字","galleryCaption":"一句话说明这些展示的是什么","gallery":[恰好 6 项 {"title":"4-10 字的作品或菜品或空间名","note":"10-20 字补充"}],"stepsTitle":"流程区标题 6-12 字","steps":[恰好 3 到 4 步 {"title":"步骤名 4-8 字","body":"25-45 字说明"}],"contactTitle":"联系方式区标题","address":"一个合理的示例地址","hours":"营业或服务时间","phone":"一个明显是示例的电话号码","contactNote":"一句补充说明，比如停车、预约方式"}
+
+gallery 写这个业务真实会展示的东西：餐饮写菜品、摄影写作品系列、门店写空间。
+steps 写顾客从了解到成交要经历的真实环节，不要写成通用的「咨询-下单-交付」。
+address 和 phone 明显是示例数据，不要写成像真的。`,
   social: `${BASE}
 字段：{"testimonials":[恰好 3 条 {"quote":"25-45 字真实感评价","name":"中文姓名","role":"3-6 字"}],"faq":[恰好 4 条 {"q":"问题","a":"30-60 字"}],"ctaTitle":"底部转化标题 8-16 字","ctaBody":"20-35 字"}`,
 } as const;
@@ -147,6 +153,9 @@ export const SLOT_NEEDS: Record<string, (keyof SiteContent)[]> = {
   stats: ["stats"],
   logos: ["logos", "logosCaption"],
   faq: ["faq"],
+  gallery: ["galleryTitle", "gallery"],
+  steps: ["stepsTitle", "steps"],
+  contact: ["contactTitle", "address", "hours"],
   cta_band: ["ctaTitle", "ctaBody", "primaryCta"],
   footer: ["brand", "footerColumns", "footerNote"],
 };

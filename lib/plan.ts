@@ -12,7 +12,7 @@ export const ARCHETYPES = {
     description:
       "面向新访客的营销落地页，目标是让人下载或注册。必须有首屏和转化区，通常还有功能介绍和社会证明。",
     required: ["nav", "hero", "features", "cta", "footer"],
-    optional: ["social", "pricing", "faq"],
+    optional: ["social", "pricing", "faq", "gallery", "steps"],
   },
   minimal: {
     label: "极简单页",
@@ -26,7 +26,7 @@ export const ARCHETYPES = {
     description:
       "面向开发者或资深用户，重点是把功能和原理讲清楚，不做转化施压。用户说面向工程师、讲深、不要花哨时选它。",
     required: ["nav", "hero", "features", "footer"],
-    optional: ["faq", "social"],
+    optional: ["faq", "social", "steps"],
   },
   pricing: {
     label: "定价页",
@@ -34,6 +34,13 @@ export const ARCHETYPES = {
       "专门讲钱的页面，主体是价格方案对比和常见问题。用户主要在问定价、套餐、多少钱时选它。",
     required: ["nav", "pricing", "faq", "cta", "footer"],
     optional: ["social", "hero"],
+  },
+  local: {
+    label: "线下门店页",
+    description:
+      "有实体门店或线下服务的生意，访客最终要到店或预约。必须能看到联系方式和营业信息，通常还想看环境、作品或菜品。咖啡馆、餐厅、诊所、理发店、工作室、民宿这类选它。",
+    required: ["nav", "hero", "contact", "footer"],
+    optional: ["gallery", "steps", "social", "faq", "pricing"],
   },
   oss: {
     label: "开源项目主页",
@@ -101,6 +108,24 @@ export const SLOTS = {
       logos: "一排平台标识。最轻量，只说明「在哪能装到」，说服力最弱。",
     },
   },
+  gallery: {
+    question: "这个页面的作品 / 环境展示区",
+    variants: {
+      gallery: "六宫格展示，每格一个作品、菜品或空间，配一句说明。适合有东西可看的生意。",
+    },
+  },
+  steps: {
+    question: "这个页面的流程说明区",
+    variants: {
+      steps: "编号流程，三到四步，说明顾客从了解到成交要经历什么。适合服务和定制类生意。",
+    },
+  },
+  contact: {
+    question: "这个页面的联系与到店信息",
+    variants: {
+      contact: "地址、营业时间、电话，外加一句补充说明。线下生意必备。",
+    },
+  },
   faq: {
     question: "这个页面的常见问题区",
     variants: { faq: "四组问答，覆盖系统要求、收费、隐私、词库导入" },
@@ -123,7 +148,10 @@ export const SLOT_ORDER: SlotKey[] = [
   "hero",
   "social",
   "features",
+  "gallery",
+  "steps",
   "pricing",
+  "contact",
   "faq",
   "cta",
   "footer",

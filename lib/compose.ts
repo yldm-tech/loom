@@ -24,6 +24,9 @@ const SKELETON_KIND: Record<string, string> = {
   nav: "nav",
   hero: "hero",
   social: "testimonials",
+  gallery: "features",
+  steps: "faq",
+  contact: "faq",
   features: "features",
   pricing: "pricing",
   faq: "faq",
@@ -263,7 +266,7 @@ export async function* composePlanned(
   // Remaining chunks stream in as they finish, in completion order.
   {
     const context = contextFrom(prompt, content as Record<string, unknown>);
-    const names: ChunkName[] = ["features", "commerce", "social"];
+    const names: ChunkName[] = ["features", "commerce", "social", "place"];
     const jobs = names.map((name) =>
       generateChunk(llmKey, name, context, signal).then((result) => ({ name, result })),
     );

@@ -46,9 +46,15 @@
 | 判断 | 置信度 |
 |---|---|
 | 视觉主题（6 选 1） | 0.98 – 1.00 |
-| 页面原型（5 选 1） | 0.64 – 1.00 |
+| 页面原型（6 选 1） | 0.62 – 1.00 |
 | 修改意图（6 选 1） | 0.98 – 1.00 |
 | 哪种社会证明（3 选 1） | 0.70 – 0.97 |
+
+```
+咖啡店   → 线下门店页@1.00  warm@0.99   → Nav HeroCentered Testimonials Gallery Pricing Contact FAQ Footer
+摄影师   → 线下门店页@0.62  ink@1.00    → Nav HeroCentered Testimonials Gallery Pricing Contact Footer
+合规SaaS → 完整落地页@1.00  corporate@1 → Nav HeroSplit Testimonials FeatureGrid Steps Pricing FAQ CTABand Footer
+```
 
 全部是**互斥单选**——概率必须和为 1，干扰项要赢就得抢走概率质量。换成「每个候选一个独立 yes/no」，40 个选项时就会有约 5% 的假阳性混进结果。这个差别是结构性的，不是调提示词能解决的。
 
@@ -109,6 +115,21 @@ npm run dev
 
 所以换主题是纯客户端的一个 prop 改动：不调模型、不动文案、瞬间完成。内容、结构、外观三者彻底解耦。
 
+## 11 个区块，6 种页面原型
+
+区块：导航（4 个变体）、首屏（2）、社会证明（3）、功能区（2）、作品展示、流程、价格（2）、联系信息、常见问题、转化条、页脚。
+
+原型决定哪些区块是**必需**的——模型无权删掉落地页的首屏，也无权删掉门店页的联系方式：
+
+| 原型 | 必需 | 可选 |
+|---|---|---|
+| 完整落地页 | nav hero features cta footer | social pricing faq gallery steps |
+| 线下门店页 | nav hero **contact** footer | gallery steps social faq pricing |
+| 工程向详情页 | nav hero features footer | faq social steps |
+| 定价页 | nav pricing faq cta footer | social hero |
+| 开源项目主页 | nav hero features footer | faq social pricing |
+| 极简单页 | hero | nav footer |
+
 ## 结构
 
 ```
@@ -117,7 +138,7 @@ lib/
   themes.ts            6 套设计 token + 给 jev 的选择依据
   plan.ts              页面原型、槽位变体、代码规则 layoutRules()
   content.ts           文案的形状 + 把文案填进区块
-  content-parallel.ts  分块并行生成 + 重试 + 形状校验 + 就绪度
+  content-parallel.ts  四块并行生成 + 重试 + 形状校验 + 就绪度
   compose.ts           三层编排，流式吐出
   edit.ts              修改意图识别（投机扇出）
 app/
@@ -131,7 +152,7 @@ app/
 
 - **LLM 会吐非法 JSON。** 实测两次里错过一次。已有重试和形状校验兜底，但这是生成式模型的固有属性——jev 那一侧从头到尾没出过一次格式错误。
 - **13 秒不算快**，而且全在 LLM 写文案上。骨架屏让首屏 0.7 秒可见，但总时长没变。
-- **区块类型只有 8 种**，没有团队介绍、时间线、图文混排、联系表单。
+- **区块类型 11 种**，还缺团队介绍、对比表、联系表单。`Gallery` 只出占位色块加文字说明，不生成图片。
 - **导出的 HTML 带完整 Tailwind CSS**，体积偏大。生产该用构建后的样式，或者写一个真正的代码导出器。
 - **文案质量取决于模型。** 换更强的模型会明显变好，也会明显变慢。
 

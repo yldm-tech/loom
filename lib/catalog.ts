@@ -80,6 +80,28 @@ export const catalog = defineCatalog(schema, {
     },
     CTABand: { props: z.object({ title: z.string(), body: z.string(), cta: z.string() }) },
     Footer: { props: z.object({ brand: z.string(), columns: z.array(z.string()), note: z.string() }) },
+    Gallery: {
+      props: z.object({
+        title: z.string(),
+        caption: z.string(),
+        items: z.array(z.object({ title: z.string(), note: z.string() })),
+      }),
+    },
+    Steps: {
+      props: z.object({
+        title: z.string(),
+        items: z.array(z.object({ title: z.string(), body: z.string() })),
+      }),
+    },
+    Contact: {
+      props: z.object({
+        title: z.string(),
+        address: z.string(),
+        hours: z.string(),
+        phone: z.string(),
+        note: z.string(),
+      }),
+    },
     Skeleton: { props: z.object({ kind: z.string() }) },
   },
   actions: {},

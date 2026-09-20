@@ -9,6 +9,8 @@
   "exportHtml": "HTML を書き出す",
   "exportTsx": "Site.tsx を書き出す",
   "exportSpec": "spec.json を書き出す",
+  "exportRegistry": "site.registry.json を書き出す",
+  "exportAgents": "AGENTS.md を書き出す",
   "editPlaceholder": "どこを直しますか？「料金は不要」「もっと明るく」など",
   "edit": "適用",
   "empty": "上の例を選ぶか、ご自分で説明してください",

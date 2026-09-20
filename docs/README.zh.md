@@ -176,13 +176,15 @@ A small bakery in Brooklyn                 → en  locale
 
 ## 导出
 
-三种，都从**同一份渲染结果**生成，不存在第二套布局代码。
+五种，都从**同一份渲染结果**生成，不存在第二套布局代码。
 
 | 导出 | 大小 | 给谁 |
 |---|---|---|
 | `site.html` | 36 KB | 直接挂上去，双击就开 |
 | `Site.tsx` | 34 KB | 拿去继续开发，`tsc --strict` 编译通过 |
 | `spec.json` | 几 KB | 存起来或喂给别的渲染器 |
+| `site.registry.json` | `Site.tsx` 包一层 | 装进已经在用 shadcn/ui 的项目 |
+| `AGENTS.md` | 一页 | 把页面交给 coding agent：token、区块、组件从哪来 |
 
 ### Site.tsx
 
@@ -207,6 +209,44 @@ A small bakery in Brooklyn                 → en  locale
 过滤靠 `root.matches()` / `root.querySelector()` 逐条试选择器，伪类剥掉后用基础选择器试，`@media` 递归处理且内部为空则整条丢，`:root` 和 `@font-face` 无条件保留，**解析不了的选择器保留而不是丢弃**——文件大一点好过悄悄坏掉。
 
 体积上只省 16%（Tailwind 本来就不大），真正的收获是导出的网站里不再混进编辑器自己的样式。实现见 `lib/export.ts`，**没有第二套渲染器**，区块布局只有 `app/registry.tsx` 一份。
+
+### site.registry.json
+
+一个 [shadcn registry](https://ui.shadcn.com/docs/registry) item，所以这个页面按任何 shadcn 组件的方式安装：
+
+```bash
+npx shadcn@latest add ./site.registry.json
+```
+
+一条命令把组件写进项目 `components.json` 指定的组件目录，并把主题的 17 个 token 合进它的样式表。依赖列表是故意留空的：`Site.tsx` 只从 React 引入一个类型，别的什么都不引，往列表里塞东西只会让 CLI 装上这个文件根本不用的包。CLI 接受本地路径，所以不用先找地方托管——浏览器刚下载下来的那个文件，落在哪就能从哪装。
+
+item 里带的就是同一份 `Site.tsx` 源码，不是页面的第二次渲染。token 以 `cssVars` 一起走，因为组件丢进一个自己定义了变量的项目，会按那个项目的颜色渲染，那就不是任何人导出的那个页面了。key 不带前面的 `--`，那两个短横由 CLI 自己补：写成 `--accent`，token 到了 Tailwind 那一层就成了 `var(----accent)`，解析不出任何东西，而安装照样报成功。
+
+### AGENTS.md
+
+给接手这份导出的 coding agent 的一页简报：`spec.json` 是这个页面的权威描述，主题的 17 个 token 连同取值，这个页面实际有哪些区块，以及和这些区块相关的组件来源。它是写给动手之前读一遍的，不是给人看的文档。
+
+## 值得抄的组件
+
+懒人玩法：把 coding agent 指到一个好库上，让它自己挑、自己改、自己贴进来。`lib/sources.ts` 就是它读的那张表：五个库，每个都带角色、许可证、安装命令、核对时确实有响应的机器可读端点、能改进哪些槽位，以及会咬人的那条注意事项。
+
+| 来源 | 是什么 | 怎么拿 |
+|---|---|---|
+| [shadcn/ui](https://ui.shadcn.com) | 63 个基于 Radix 的无障碍 React 基础组件，外加另外四家都在对齐的 registry 规范 | `npx shadcn@latest add <name>` |
+| [beUI](https://beui.dev) | 85 个带动效的组件，shadcn 兼容的 registry，还有 MCP 端点 | `npx shadcn@latest add https://beui.dev/r/<name>.json` |
+| [Rare UI](https://rareui.com) | 约 20 个单文件动效小部件——粘液态导航、临近感应侧栏、里程表计数 | `npx shadcn@latest add swamimalode07/rare-ui/<name>` |
+| [Transitions](https://transitions.dev) | 约 44 段有名字的动效，纯 CSS，`.t-*` 命名空间 | `npx transitions-dev add <slug>` |
+| [Beautiful UI](https://beautifului.dev) | 21 个面向 AI 应用界面的基础组件 | 只能从浏览器里复制粘贴，没有 CLI，没有 registry |
+
+**五个里没有一个提供落地页区块。** 整套里找不到首屏、客户评价、团队墙和页脚——它们是基础组件、动效和应用形态的小部件。所以一个来源改进的是 loom 已经在渲染的区块，而不是替换它，`role` 这个字段说的正是该期待哪一种改进。把这张表当区块目录读的 agent，会跑去 shadcn/ui 找首屏，然后找到 `/blocks/login`。
+
+许可证也不齐。四个是 MIT；Transitions 是自定义许可证，禁止再分发这套集合的实质部分，所以它的片段可以用在站点上，但不能内嵌进这个仓库。
+
+表里每个 url 和端点都是真去取过、核对过的，不是凭印象写的，而且它们早晚会失效：
+
+```bash
+npm run sources   # 逐个重新请求端点，报出各家现在还列着多少组件
+```
 
 ## 主题即数据
 
@@ -260,7 +300,7 @@ npm run audit:a11y   # axe-core 扫生成结果，六套主题全过一遍
 
 
 ```bash
-npm test          # 125 个，约 4 秒，不碰网络
+npm test          # 199 个，约 1.5 秒，不碰网络
 ```
 
 测的是**三条被从模型手里拿回来的规则**——卖点条数决定网格还是列表、价格档数决定单档还是对比、有没有界面截图决定首屏版式。这几条一旦回归，决策就悄悄还给了一个答不了的模型，所以它们最不该漂。
@@ -294,8 +334,11 @@ lib/
   edit.ts              修改意图识别（投机扇出）
   export.ts            自包含 HTML 导出，只带用到的 CSS
   export-tsx.ts        React 源码导出，DOM → JSX
+  export-registry.ts   同一份源码打成 shadcn registry item，带上主题 token
+  export-agents.ts     AGENTS.md：spec、token、区块、组件从哪来
   i18n.ts              界面语言，读 locales/*.json
   demo.ts              无 key 时回放 fixtures/ 里的真实录制
+  sources.ts           五个可供 agent 取用的组件库，带角色和注意事项
   *.test.ts            纯逻辑的测试，不碰网络
 locales/
   en|zh|ja|ko|es|fr|de|pt.json   界面翻译，zh 为基准
@@ -318,7 +361,7 @@ app/
 
 ## 参与
 
-改动请看 [CONTRIBUTING.md](../CONTRIBUTING.md)。加区块、加主题、加界面语言各有一条既定路径，都不长。
+改动请看 [CONTRIBUTING.md](../CONTRIBUTING.md)。加区块、加主题、加界面语言、加组件来源各有一条既定路径，都不长。
 
 ## Star History
 

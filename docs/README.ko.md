@@ -176,13 +176,15 @@ A small bakery in Brooklyn                 → en  locale
 
 ## 내보내기
 
-세 가지, 모두 **같은 렌더링 결과**에서 나옵니다. 레이아웃 코드가 두 벌 존재하지 않습니다.
+다섯 가지, 모두 **같은 렌더링 결과**에서 나옵니다. 레이아웃 코드가 두 벌 존재하지 않습니다.
 
 | 내보내기 | 크기 | 용도 |
 |---|---|---|
 | `site.html` | 36 KB | 그대로 올리거나 더블클릭으로 열기 |
 | `Site.tsx` | 34 KB | 이어서 개발. `tsc --strict` 통과 |
 | `spec.json` | 수 KB | 보관하거나 다른 렌더러에 투입 |
+| `site.registry.json` | `Site.tsx` 를 감싼 것 | 이미 shadcn/ui 를 쓰는 프로젝트에 설치 |
+| `AGENTS.md` | 한 쪽 | 코딩 에이전트에게 넘기기: 토큰, 블록, 컴포넌트 출처 |
 
 ### Site.tsx
 
@@ -207,6 +209,44 @@ A small bakery in Brooklyn                 → en  locale
 필터링은 각 셀렉터를 `root.matches()` / `root.querySelector()` 로 시험하고, 의사 클래스를 벗겨 기본 셀렉터로 재시도하며, `@media` 는 재귀 처리해 내부가 비면 통째로 버리고, `:root` 와 `@font-face` 는 무조건 남깁니다. **파싱할 수 없는 셀렉터는 버리지 않고 남깁니다** — 파일이 조금 큰 편이 조용히 망가지는 것보다 낫습니다.
 
 크기로는 16% 정도만 줄어듭니다 (Tailwind는 원래 크지 않았습니다). 진짜 수확은 내보낸 사이트에 에디터 자신의 스타일이 섞이지 않게 된 것입니다. 구현은 `lib/export.ts`. **두 번째 렌더러는 없고**, 블록 레이아웃은 `app/registry.tsx` 한 곳뿐입니다.
+
+### site.registry.json
+
+[shadcn registry](https://ui.shadcn.com/docs/registry) 항목입니다. 그래서 이 페이지는 여느 shadcn 컴포넌트와 똑같은 방식으로 설치됩니다.
+
+```bash
+npx shadcn@latest add ./site.registry.json
+```
+
+명령 하나가 프로젝트의 `components.json` 이 컴포넌트 폴더라고 부르는 곳에 컴포넌트를 쓰고, 테마의 토큰 17개를 그 스타일시트에 합칩니다. 의존성 목록은 일부러 비워 두었습니다. `Site.tsx` 는 React 에서 타입 하나만 가져올 뿐이고, 목록을 채우면 파일이 쓰지도 않는 패키지를 CLI 가 설치하게 됩니다. CLI 가 로컬 경로를 받으므로 어딘가에 먼저 올릴 필요가 없습니다 — 브라우저가 방금 내려받은 그 파일을, 내려받은 자리에서 그대로 씁니다.
+
+항목이 품고 있는 것은 같은 `Site.tsx` 소스이지 페이지를 두 번째로 렌더링한 결과가 아닙니다. 토큰은 `cssVars` 로 함께 따라갑니다. 자기 변수를 정의해 둔 프로젝트에 떨어진 컴포넌트는 그 프로젝트의 색으로 그려지고, 그건 누구도 내보낸 적 없는 페이지이기 때문입니다. 키는 앞의 `--` 없이 씁니다. 그 두 글자는 CLI 가 붙이는 몫이라, `--accent` 라고 쓰면 토큰은 Tailwind 쪽에서 `var(----accent)` 가 되어 아무것도 가리키지 못하는데, 설치는 그래도 성공했다고 보고합니다.
+
+### AGENTS.md
+
+내보낸 결과를 집어 드는 코딩 에이전트를 위한 짧은 브리핑입니다. `spec.json` 이 이 페이지의 정본이라는 것, 테마의 토큰 17개와 그 값, 이 페이지에 실제로 있는 블록, 그리고 그 블록들과 관련된 컴포넌트 출처. 작업을 시작하기 전에 한 번 읽히려고 쓴 것이지, 사람을 위한 문서가 아닙니다.
+
+## 훔칠 만한 컴포넌트
+
+방식은 게으른 쪽입니다 — 괜찮은 라이브러리를 코딩 에이전트에게 알려 주고, 고르고 고치고 붙여 넣는 일을 맡깁니다. `lib/sources.ts` 가 에이전트가 읽는 표입니다. 라이브러리 다섯 곳 각각의 역할, 라이선스, 설치 명령, 확인 당시 실제로 응답한 기계 판독용 엔드포인트, 개선할 수 있는 슬롯, 그리고 무는 주의사항이 들어 있습니다.
+
+| 출처 | 무엇인가 | 가져오는 법 |
+|---|---|---|
+| [shadcn/ui](https://ui.shadcn.com) | Radix 위에 올린 접근성 React 프리미티브 63개, 그리고 나머지 넷이 맞추는 registry 명세 | `npx shadcn@latest add <name>` |
+| [beUI](https://beui.dev) | 애니메이션 컴포넌트 85개. shadcn 호환 registry 와 MCP 엔드포인트까지 | `npx shadcn@latest add https://beui.dev/r/<name>.json` |
+| [Rare UI](https://rareui.com) | 단일 파일 애니메이션 위젯 약 20개 — 끈적이는 내비, 근접 반응 사이드바, 오도미터 카운터 | `npx shadcn@latest add swamimalode07/rare-ui/<name>` |
+| [Transitions](https://transitions.dev) | 이름 붙은 모션 스니펫 약 44개. 순수 CSS, `.t-*` 네임스페이스 | `npx transitions-dev add <slug>` |
+| [Beautiful UI](https://beautifului.dev) | AI 애플리케이션 화면용 프리미티브 21개 | 브라우저에서 복사·붙여넣기만. CLI 도 registry 도 없음 |
+
+**다섯 곳 중 어디도 마케팅 페이지 섹션을 제공하지 않습니다.** 첫 화면도, 고객 후기도, 팀 소개도, 푸터도 이 다섯 곳 어디에도 없습니다 — 있는 것은 프리미티브와 모션, 그리고 앱 모양의 위젯입니다. 그래서 어떤 출처는 loom 이 이미 그리고 있는 블록을 개선할 뿐, 대체하지 않습니다. 어느 쪽 개선인지를 말해 주는 필드가 `role` 입니다. 이 표를 블록 카탈로그로 읽는 에이전트는 shadcn/ui 에서 첫 화면을 찾다가 `/blocks/login` 을 만나게 됩니다.
+
+라이선스도 균일하지 않습니다. 넷은 MIT 이고, Transitions 는 컬렉션의 실질적인 부분을 재배포하는 것을 금지하는 자체 라이선스입니다. 사이트에 쓰는 것은 되지만 이 저장소에 담아 함께 배포해서는 안 됩니다.
+
+표에 있는 url 과 엔드포인트는 기억이 아니라 실제로 가져와 확인한 것입니다. 그래도 언젠가는 썩습니다.
+
+```bash
+npm run sources   # 각 엔드포인트를 다시 불러, 지금 몇 개의 컴포넌트를 나열하는지 보고
+```
 
 ## 테마는 데이터
 
@@ -260,7 +300,7 @@ npm run audit:a11y   # 생성 결과에 axe-core, 여섯 테마 전부
 
 
 ```bash
-npm test          # 125개, 약 4초, 네트워크 미사용
+npm test          # 199개, 약 1.5초, 네트워크 미사용
 ```
 
 핵심은 **모델에게서 되찾아온 세 규칙**입니다 — 강점 개수가 그리드냐 리스트냐를, 요금 단계 수가 단일이냐 비교냐를, 화면 스크린샷 유무가 첫 화면 판을 정합니다. 여기가 되돌아가면 결정이 답할 수 없는 모델에게 조용히 넘어가므로, 가장 흔들리면 안 되는 부분입니다.
@@ -294,7 +334,10 @@ lib/
   edit.ts              수정 의도 식별 (투기적 팬아웃)
   export.ts            자기완결 HTML, 쓰이는 CSS만
   export-tsx.ts        React 소스 내보내기, DOM → JSX
+  export-registry.ts   같은 소스를 shadcn registry 항목으로, 테마 토큰 포함
+  export-agents.ts     AGENTS.md: spec, 토큰, 블록, 컴포넌트 출처
   i18n.ts              UI 언어, locales/*.json 을 읽음
+  sources.ts           에이전트가 가져다 쓸 수 있는 컴포넌트 출처 다섯 곳, 역할과 주의사항 포함
   *.test.ts            순수 로직 테스트, 네트워크 미사용
 locales/
   en|zh|ja|ko|es|fr|de|pt.json   UI 번역, zh 가 기준
@@ -315,7 +358,7 @@ app/
 
 ## 기여
 
-[CONTRIBUTING.md](../CONTRIBUTING.md) 를 참고하세요. 블록·테마·UI 언어 추가에는 각각 짧고 정해진 경로가 있습니다.
+[CONTRIBUTING.md](../CONTRIBUTING.md) 를 참고하세요. 블록·테마·UI 언어·컴포넌트 출처 추가에는 각각 짧고 정해진 경로가 있습니다.
 
 ## Star History
 

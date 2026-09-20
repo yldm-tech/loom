@@ -8,6 +8,8 @@ import { THEMES } from "@/lib/themes";
 import { elementsFor, type SiteContent } from "@/lib/content";
 import { buildStandaloneHtml } from "@/lib/export";
 import { buildReactSource } from "@/lib/export-tsx";
+import { buildRegistryItem } from "@/lib/export-registry";
+import { buildAgentsMd } from "@/lib/export-agents";
 import {
   detectLocale,
   dict,
@@ -278,6 +280,50 @@ export default function Page() {
     URL.revokeObjectURL(url);
   }, [spec, theme]);
 
+  /**
+   * Export the page as a shadcn registry item.
+   *
+   * This is the only interchange format the libraries in lib/sources.ts agree on: four of the five publish one, and `npx shadcn add <url>` is how a component gets pulled into a project in the first place. Emitting the same shape sends the generated page back down that pipe, so an agent handles it with the machinery it already has rather than being handed a novel file it has to be taught about.
+   */
+  const exportRegistry = useCallback(() => {
+    const node = previewRef.current?.firstElementChild;
+    if (!node) return;
+    const item = buildRegistryItem(node, prompt, theme);
+    const blob = new Blob([item], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "site.registry.json";
+    a.click();
+    URL.revokeObjectURL(url);
+    setEditLog((log) => [
+      ...log,
+      `${t.exportRegistry} · ${(item.length / 1024).toFixed(0)} KB`,
+    ]);
+  }, [prompt, theme, t]);
+
+  /**
+   * Export a brief for a coding agent rather than an artefact for a build.
+   *
+   * The other four exports assume whoever receives them already knows what loom rendered. An agent asked to improve the result does not: it needs the slots that are actually on the page and the honest account of what each source can and cannot do for them — none of the five ships a marketing section, so the instruction is always to improve a block that exists, never to go find a replacement for it. Left to guess, an agent looks for a hero in shadcn/ui, finds a login block, and invents something.
+   */
+  const exportAgents = useCallback(() => {
+    const node = previewRef.current?.firstElementChild;
+    if (!node) return;
+    const brief = buildAgentsMd(node, prompt, theme, slots);
+    const blob = new Blob([brief], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "AGENTS.md";
+    a.click();
+    URL.revokeObjectURL(url);
+    setEditLog((log) => [
+      ...log,
+      `${t.exportAgents} · ${(brief.length / 1024).toFixed(0)} KB · ${slots.join(" ")}`,
+    ]);
+  }, [prompt, theme, slots, t]);
+
   const totalTokens = steps.reduce((sum, step) => sum + (step.inputTokens ?? 0), 0);
 
   // Appearance lives entirely in one prop, so re-theming costs nothing: no
@@ -444,6 +490,20 @@ export default function Page() {
                 className="rounded-full border border-neutral-300 px-2.5 py-1 text-[12px] text-neutral-600 hover:border-neutral-600 dark:border-neutral-700 dark:text-neutral-300"
               >
                 {t.exportSpec}
+              </button>
+              <button
+                type="button"
+                onClick={exportRegistry}
+                className="rounded-full border border-neutral-300 px-2.5 py-1 text-[12px] text-neutral-600 hover:border-neutral-600 dark:border-neutral-700 dark:text-neutral-300"
+              >
+                {t.exportRegistry}
+              </button>
+              <button
+                type="button"
+                onClick={exportAgents}
+                className="rounded-full border border-neutral-300 px-2.5 py-1 text-[12px] text-neutral-600 hover:border-neutral-600 dark:border-neutral-700 dark:text-neutral-300"
+              >
+                {t.exportAgents}
               </button>
             </div>
           )}

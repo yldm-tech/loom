@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { replayEdit } from "./demo";
+import { UI_LOCALES } from "./i18n";
 
 const FIXTURES = join(import.meta.dirname, "..", "fixtures");
 
@@ -13,8 +14,8 @@ const FIXTURES = join(import.meta.dirname, "..", "fixtures");
 describe("fixtures", () => {
   const names = readdirSync(FIXTURES).filter((f) => f.endsWith(".jsonl"));
 
-  it("ships one per UI locale", () => {
-    expect(names.sort()).toEqual(["en.jsonl", "ja.jsonl", "ko.jsonl", "zh.jsonl"]);
+  it("ships one per UI locale, so demo mode never falls back across languages", () => {
+    expect(names.sort()).toEqual([...UI_LOCALES].map((l) => `${l}.jsonl`).sort());
   });
 
   for (const name of names) {

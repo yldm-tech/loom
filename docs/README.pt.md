@@ -16,7 +16,7 @@
 Descreva seu negócio em uma frase e receba uma landing page que dá para usar de verdade.
 
 <p align="center">
-  <img src="../docs/images/generate-en.webp" alt="Blocos sendo preenchidos sobre um esqueleto já tematizado" width="640">
+  <img src="../docs/images/generate-pt.webp" alt="Blocos sendo preenchidos sobre um esqueleto já tematizado" width="640">
 </p>
 
 ```
@@ -102,7 +102,7 @@ Os arquivos em `fixtures/` são **execuções realmente gravadas**, não escrita
 ## Editar depois
 
 <p align="center">
-  <img src="../docs/images/decisions-en.jpg" alt="O editor, com o log de decisões e o seletor de tema" width="820">
+  <img src="../docs/images/decisions-pt.jpg" alt="O editor, com o log de decisões e o seletor de tema" width="820">
 </p>
 
 Cada julgamento que o Jev fez, com a confiança e o momento em que chegou. Uma edição que erra dá para rastrear, em vez de virar mistério.
@@ -187,7 +187,7 @@ Em tamanho economiza só 16 % (o Tailwind nunca foi o problema). O ganho real é
 ## Temas são dados
 
 <p align="center">
-  <img src="../docs/images/themes-en.jpg" alt="O mesmo site gerado nos seis temas" width="820">
+  <img src="../docs/images/themes-pt.jpg" alt="O mesmo site gerado nos seis temas" width="820">
 </p>
 
 O mesmo texto gerado sob os seis temas. Trocar de tema é mudar uma prop no cliente: sem chamada ao modelo, sem regeração.
@@ -223,7 +223,7 @@ O arquétipo decide quais blocos são **obrigatórios** — nenhum modelo pode r
 ## Testes
 
 ```bash
-npm test          # 78 deles, cerca de 3 s, sem rede
+npm test          # 98 deles, cerca de 4 s, sem rede
 ```
 
 Eles cobrem **as três regras retomadas do modelo**: a quantidade de diferenciais decide grade ou lista, a quantidade de planos decide cartão único ou comparativo, e a existência de uma captura de interface decide o layout do topo. Se alguma delas escorregar, a decisão volta em silêncio para um modelo que não consegue tomá-la — são as que não podem se mexer.
@@ -278,7 +278,6 @@ app/
 - **13 tipos de bloco**, ainda faltam formulário de contato, vídeo e mapas. O `Gallery` desenha blocos coloridos com legenda; ele não gera imagens.
 - **`Site.tsx` é um trecho único e plano de JSX**, não uma árvore de componentes já separada. Compila e dá para editar, mas manter a longo prazo significa separá-lo você mesmo.
 - **A qualidade do texto acompanha o modelo.** Um modelo mais forte se nota bastante — e que ele é mais lento, também.
-- **As capturas desta página estão em inglês.** Ainda não há uma gravação em português; quando houver, esta tradução passará a usar a dela.
 
 ## Contribuir
 

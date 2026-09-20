@@ -65,7 +65,7 @@ export default function Page() {
     const response = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt: request }),
+      body: JSON.stringify({ prompt: request, locale }),
     });
     if (!response.body) {
       setStatus(t.noStream);

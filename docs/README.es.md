@@ -16,7 +16,7 @@
 Describe tu negocio en una frase y obtén una página de aterrizaje que se puede usar de verdad.
 
 <p align="center">
-  <img src="../docs/images/generate-en.webp" alt="Los bloques se van rellenando sobre un esqueleto ya tematizado" width="640">
+  <img src="../docs/images/generate-es.webp" alt="Los bloques se van rellenando sobre un esqueleto ya tematizado" width="640">
 </p>
 
 ```
@@ -102,7 +102,7 @@ Los archivos de `fixtures/` son **ejecuciones realmente grabadas**, no escritas 
 ## Editar después
 
 <p align="center">
-  <img src="../docs/images/decisions-en.jpg" alt="El editor, con el registro de decisiones y el selector de tema" width="820">
+  <img src="../docs/images/decisions-es.jpg" alt="El editor, con el registro de decisiones y el selector de tema" width="820">
 </p>
 
 Cada juicio que hizo Jev, con su confianza y el momento en que llegó. Una edición que falla se puede rastrear en lugar de quedar en misterio.
@@ -187,7 +187,7 @@ En tamaño solo ahorra un 16 % (Tailwind nunca fue el problema). La ganancia rea
 ## Los temas son datos
 
 <p align="center">
-  <img src="../docs/images/themes-en.jpg" alt="El mismo sitio generado con los seis temas" width="820">
+  <img src="../docs/images/themes-es.jpg" alt="El mismo sitio generado con los seis temas" width="820">
 </p>
 
 El mismo texto generado bajo los seis temas. Cambiar de tema es modificar una sola prop en el cliente: sin llamada al modelo, sin regeneración.
@@ -223,7 +223,7 @@ El arquetipo decide qué bloques son **obligatorios**: ningún modelo puede quit
 ## Pruebas
 
 ```bash
-npm test          # 78, unos 3 s, sin red
+npm test          # 98, unos 4 s, sin red
 ```
 
 Cubren **las tres reglas recuperadas del modelo**: el número de argumentos decide rejilla o lista, el número de planes decide tarjeta única o comparativa, y la existencia de una captura de interfaz decide la composición de la portada. Si alguna se desvía, la decisión vuelve en silencio a un modelo que no puede tomarla, así que son las que no deben moverse.
@@ -278,7 +278,6 @@ app/
 - **13 tipos de bloque**, todavía faltan formulario de contacto, vídeo y mapas. `Gallery` dibuja recuadros de color con pie de texto; no genera imágenes.
 - **`Site.tsx` es un único tramo plano de JSX**, no un árbol de componentes ya separado. Compila y se puede editar, pero mantenerlo a largo plazo implica trocearlo uno mismo.
 - **La calidad del texto sigue al modelo.** Uno más potente se nota bastante, y también se nota que es más lento.
-- **Las capturas de esta página están en inglés.** Aún no hay grabaciones en español; cuando las haya, esta traducción usará las suyas.
 
 ## Contribuir
 

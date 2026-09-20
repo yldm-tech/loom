@@ -16,7 +16,7 @@
 Décrivez votre activité en une phrase et obtenez une page d'atterrissage réellement utilisable.
 
 <p align="center">
-  <img src="../docs/images/generate-en.webp" alt="Les blocs se remplissent sur un squelette déjà thématisé" width="640">
+  <img src="../docs/images/generate-fr.webp" alt="Les blocs se remplissent sur un squelette déjà thématisé" width="640">
 </p>
 
 ```
@@ -102,7 +102,7 @@ Les fichiers de `fixtures/` sont de **vraies exécutions enregistrées**, pas de
 ## Modifier ensuite
 
 <p align="center">
-  <img src="../docs/images/decisions-en.jpg" alt="L'éditeur, avec le journal des décisions et le sélecteur de thème" width="820">
+  <img src="../docs/images/decisions-fr.jpg" alt="L'éditeur, avec le journal des décisions et le sélecteur de thème" width="820">
 </p>
 
 Chaque jugement rendu par Jev, avec sa confiance et son horodatage. Une modification qui rate se remonte au lieu de rester mystérieuse.
@@ -187,7 +187,7 @@ En taille, cela ne fait gagner que 16 % (Tailwind n'a jamais été le problème)
 ## Les thèmes sont des données
 
 <p align="center">
-  <img src="../docs/images/themes-en.jpg" alt="Le même site généré sous les six thèmes" width="820">
+  <img src="../docs/images/themes-fr.jpg" alt="Le même site généré sous les six thèmes" width="820">
 </p>
 
 Le même texte généré sous les six thèmes. Changer de thème, c'est modifier une seule prop côté client : aucun appel au modèle, aucune régénération.
@@ -223,7 +223,7 @@ L'archétype décide quels blocs sont **obligatoires** : aucun modèle n'a le dr
 ## Tests
 
 ```bash
-npm test          # 78, environ 3 s, sans réseau
+npm test          # 98, environ 4 s, sans réseau
 ```
 
 Ils couvrent **les trois règles reprises au modèle** : le nombre d'arguments décide grille ou liste, le nombre de paliers décide carte unique ou comparatif, et la présence d'une capture d'interface décide la mise en page de l'en-tête. Si l'une dérive, la décision retourne en silence à un modèle incapable de la prendre : ce sont celles qui ne doivent pas bouger.
@@ -278,7 +278,6 @@ app/
 - **13 types de blocs**, il manque encore un formulaire de contact, la vidéo et les cartes. `Gallery` affiche des vignettes colorées légendées ; elle ne génère pas d'images.
 - **`Site.tsx` est un seul pan de JSX**, pas un arbre de composants déjà découpé. Il compile et se modifie, mais le maintenir sur la durée suppose de le découper soi-même.
 - **La qualité du texte suit le modèle.** Un modèle plus fort se remarque nettement, et sa lenteur aussi.
-- **Les captures de cette page sont en anglais.** Il n'existe pas encore d'enregistrement en français ; dès qu'il y en aura un, cette traduction utilisera le sien.
 
 ## Contribuer
 

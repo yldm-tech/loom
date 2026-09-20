@@ -226,7 +226,7 @@ The archetype decides which blocks are **required** — no model gets to drop a 
 ## Tests
 
 ```bash
-npm test          # 78 of them, ~3s, no network
+npm test          # 98 of them, ~4s, no network
 ```
 
 They cover **the three rules taken back from the model** — selling-point count decides grid vs list, tier count decides single vs comparison, whether there is a UI screenshot decides the hero layout. If any of these drift, the decision quietly goes back to a model that cannot make it, so they are the ones that must not move.

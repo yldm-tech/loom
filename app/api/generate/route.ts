@@ -4,7 +4,10 @@ import { isDemoMode, replay } from "@/lib/demo";
 export const maxDuration = 120;
 
 export async function POST(request: Request) {
-  const { prompt } = (await request.json()) as { prompt?: string };
+  const { prompt, locale } = (await request.json()) as {
+    prompt?: string;
+    locale?: string;
+  };
   if (!prompt?.trim()) {
     return Response.json({ error: "prompt is required" }, { status: 400 });
   }
@@ -23,7 +26,7 @@ export async function POST(request: Request) {
         // Without keys the app still runs, replaying a recorded session rather
         // than refusing to start. Every event is flagged so the UI can say so.
         const events = demo
-          ? replay(prompt, signal)
+          ? replay(prompt, signal, locale)
           : composePlanned(jevKey!, llmKey!, prompt, signal);
         for await (const event of events) send(event);
       } catch (error) {

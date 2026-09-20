@@ -16,7 +16,7 @@
 Beschreibe dein Geschäft in einem Satz und bekomme eine Landingpage, die man wirklich benutzen kann.
 
 <p align="center">
-  <img src="../docs/images/generate-en.webp" alt="Blöcke füllen sich nach und nach in ein bereits eingefärbtes Gerüst" width="640">
+  <img src="../docs/images/generate-de.webp" alt="Blöcke füllen sich nach und nach in ein bereits eingefärbtes Gerüst" width="640">
 </p>
 
 ```
@@ -102,7 +102,7 @@ Die Dateien unter `fixtures/` sind **tatsächlich aufgezeichnete Läufe**, nicht
 ## Nachträglich ändern
 
 <p align="center">
-  <img src="../docs/images/decisions-en.jpg" alt="Der Editor mit Entscheidungsprotokoll und Themenauswahl" width="820">
+  <img src="../docs/images/decisions-de.jpg" alt="Der Editor mit Entscheidungsprotokoll und Themenauswahl" width="820">
 </p>
 
 Jedes Urteil von Jev, mit Konfidenz und Zeitpunkt. Eine Änderung, die danebengeht, lässt sich nachvollziehen statt rätselhaft zu bleiben.
@@ -187,7 +187,7 @@ An Größe spart das nur 16 % (Tailwind war nie das Problem). Der eigentliche Ge
 ## Themes sind Daten
 
 <p align="center">
-  <img src="../docs/images/themes-en.jpg" alt="Dieselbe generierte Seite in allen sechs Themes" width="820">
+  <img src="../docs/images/themes-de.jpg" alt="Dieselbe generierte Seite in allen sechs Themes" width="820">
 </p>
 
 Derselbe generierte Text in allen sechs Themes. Umschalten ist eine einzige Prop-Änderung im Client: kein Modellaufruf, keine Neuerzeugung.
@@ -223,7 +223,7 @@ Der Archetyp legt fest, welche Blöcke **Pflicht** sind — kein Modell darf den
 ## Tests
 
 ```bash
-npm test          # 78 Stück, rund 3 s, ohne Netz
+npm test          # 98 Stück, rund 4 s, ohne Netz
 ```
 
 Sie decken **die drei dem Modell abgenommenen Regeln** ab: Die Anzahl der Verkaufsargumente entscheidet Raster oder Liste, die Anzahl der Preisstufen entscheidet Einzelkarte oder Vergleich, und ob es einen Oberflächen-Screenshot gibt, entscheidet das Layout des Kopfbereichs. Driftet eine davon, geht die Entscheidung still an ein Modell zurück, das sie nicht treffen kann — sie dürfen sich also nicht bewegen.
@@ -278,7 +278,6 @@ app/
 - **13 Blocktypen**, es fehlen noch Kontaktformular, Video und Karten. `Gallery` zeichnet eingefärbte Platzhalter mit Bildunterschrift; Bilder erzeugt sie nicht.
 - **`Site.tsx` ist ein einziges flaches Stück JSX**, kein bereits aufgeteilter Komponentenbaum. Es kompiliert und lässt sich ändern, aber auf Dauer pflegen heißt, es selbst zu zerlegen.
 - **Die Textqualität folgt dem Modell.** Ein stärkeres merkt man deutlich, und dass es langsamer ist, auch.
-- **Die Screenshots auf dieser Seite sind auf Englisch.** Eine deutsche Aufzeichnung gibt es noch nicht; sobald es eine gibt, verwendet diese Übersetzung ihre eigene.
 
 ## Mitmachen
 

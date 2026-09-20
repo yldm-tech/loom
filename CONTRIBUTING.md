@@ -6,7 +6,7 @@ Get it running first, so you know the environment is sound:
 
 ```bash
 npm install
-npm test        # 70 of them, ~3s, no network
+npm test        # 98 of them, ~4s, no network
 npm run dev     # demo mode; no keys needed
 ```
 
@@ -79,7 +79,7 @@ There are eight READMEs: `README.md` (English, the reference) and `docs/README.{
 
 Substantive changes should land in all of them. If you only read one or two of those languages, change the ones you can and say so in the PR; the rest can follow. **A translation lagging behind is better than a machine-translated one.**
 
-Four of them have screenshots in their own language; the rest fall back to the English captures. A test enforces that a translation uses its own set when one exists and the English set otherwise, never a mix. To give a language its own, record a run with the UI in that locale and add the three images.
+Every one has screenshots in its own language. A test enforces that a translation uses its own set when one exists and the English set otherwise, never a mix — so a new language may ship with the English captures and gain its own later. To record a set, run with live keys to capture a fixture, then screenshot in demo mode with the UI in that locale.
 
 Tests also check that all eight share the same heading outline level for level and quote the same measured figures. Decimal separators differ by language and are normalised before comparison, so `0,16` and `0.16` count as the same number.
 

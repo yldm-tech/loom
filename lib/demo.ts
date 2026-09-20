@@ -26,8 +26,14 @@ export async function availableFixtures(): Promise<string[]> {
   }
 }
 
-/** Crude but sufficient: the script the request is written in picks the recording. */
-function pickFixture(prompt: string, available: string[]): string {
+/**
+ * The editor's own locale is the best signal, because Latin-script languages
+ * are indistinguishable from the request text alone. It is only a hint, so a
+ * locale with no recording still falls back to the script heuristic.
+ */
+function pickFixture(prompt: string, available: string[], locale?: string): string {
+  if (locale && available.includes(locale)) return locale;
+
   const has = (re: RegExp) => re.test(prompt);
   const order = has(/[가-힯]/)
     ? ["ko", "en", "zh"]
@@ -46,7 +52,11 @@ export type DemoEvent = Record<string, unknown> & { elapsedMs?: number };
  * arrives at roughly its original pace. Capped so a slow recording does not
  * make the demo feel broken.
  */
-export async function* replay(prompt: string, signal: AbortSignal): AsyncGenerator<DemoEvent> {
+export async function* replay(
+  prompt: string,
+  signal: AbortSignal,
+  locale?: string,
+): AsyncGenerator<DemoEvent> {
   const available = await availableFixtures();
   if (available.length === 0) {
     yield {
@@ -57,7 +67,7 @@ export async function* replay(prompt: string, signal: AbortSignal): AsyncGenerat
     return;
   }
 
-  const name = pickFixture(prompt, available);
+  const name = pickFixture(prompt, available, locale);
   const raw = await readFile(join(FIXTURES, `${name}.jsonl`), "utf8");
   const events = raw
     .split("\n")

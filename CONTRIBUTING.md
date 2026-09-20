@@ -1,79 +1,84 @@
-# 参与 loom
+**English** · [简体中文](docs/CONTRIBUTING.zh.md)
 
-先跑一遍，确认环境是通的：
+# Contributing to loom
+
+Get it running first, so you know the environment is sound:
 
 ```bash
 npm install
-cp .env.example .env.local   # JEV_TOKEN 和 LLM_TOKEN
-npm test                     # 39 个，2.5 秒，不碰网络
-npm run dev
+npm test        # 70 of them, ~3s, no network
+npm run dev     # demo mode; no keys needed
 ```
 
-测试不需要任何 key，改纯逻辑的话连 `.env.local` 都不用配。
+The tests need no keys at all. If you are only touching pure logic you never have to create `.env.local`.
 
-## 提 PR 之前
+## Before opening a PR
 
 ```bash
 npx tsc --noEmit && npm test && npm run build
 ```
 
-CI 跑的就是这三条。
+That is exactly what CI runs.
 
-## 加一个区块
+## Adding a block
 
-四处，缺一处 TypeScript 会直接报错——`catalog.ts` 声明的组件，`registry.tsx` 必须全部实现。
+Four places. Miss one and TypeScript stops you — every component declared in `catalog.ts` must exist in `registry.tsx`.
 
-1. `lib/catalog.ts` — 声明组件和它的 props（zod）
-2. `lib/content.ts` — 在 `SiteContent` 加字段，在 `elementsFor()` 里把字段填进去
-3. `lib/content-parallel.ts` — 在某个 chunk 的 prompt 里要求 LLM 产出这些字段，并在 `SLOT_NEEDS` 声明就绪条件
-4. `app/registry.tsx` — 写组件本体，颜色和圆角**只能走 CSS 变量**，不要出现十六进制
+1. `lib/catalog.ts` — declare the component and its props (zod)
+2. `lib/content.ts` — add the fields to `SiteContent`, and fill them in `elementsFor()`
+3. `lib/content-parallel.ts` — ask one of the chunks for those fields, and declare readiness in `SLOT_NEEDS`
+4. `app/registry.tsx` — write the component. Colours and radii go through **CSS variables only**; no hex values
 
-然后在 `lib/plan.ts` 的 `SLOTS` 加槽位、在 `SLOT_ORDER` 里排位置、挂到合适原型的 `required` 或 `optional` 上。`lib/compose.ts` 的 `SKELETON_KIND` 里指一个骨架形状，`lib/edit.ts` 的 `SLOT_LABELS` 里给个中文名。
+Then add the slot to `SLOTS` in `lib/plan.ts`, place it in `SLOT_ORDER`, and hang it off the right archetypes' `required` or `optional`. Point `SKELETON_KIND` in `lib/compose.ts` at a skeleton shape, and give it a label in `SLOT_LABELS` in `lib/edit.ts`.
 
-## 加一套主题
+## Adding a theme
 
-只改 `lib/themes.ts`。一套主题是一组完整 token：配色、字体、圆角、渐变。
+`lib/themes.ts` only. A theme is a complete token set: palette, typeface, radius, gradients.
 
-`description` 字段是**给 jev 看的选择依据**，写「适合什么业务、什么气质」，不要写「这个颜色好看」。实测表明描述里有没有可判定的规则，直接决定置信度是 0.98 还是 0.63。
+The `description` field is **the rubric Jev chooses from**. Write what kind of business and mood it suits, not that the colour is nice. Measured: whether a description carries a decidable rule is the difference between 0.98 and 0.63 confidence.
 
-## 加一种界面语言
+## Adding a UI language
 
-1. 复制 `locales/zh.json`，逐条翻译
-2. 在 `lib/i18n.ts` 的 `UI_LOCALES`、`LOCALE_LABELS`、`DICTS` 各加一行
-3. `detectLocale()` 里加一条前缀匹配
+1. Copy `locales/zh.json` and translate every entry
+2. Add a line each to `UI_LOCALES`, `LOCALE_LABELS` and `DICTS` in `lib/i18n.ts`
+3. Add a prefix match in `detectLocale()`
 
-`zh.json` 是基准。测试会断言 key 完全一致、没有空串、例子条数相同，而且每种语言的例子真的用那种文字写。半拉翻译会让 CI 红，不会在运行时静默回落。
+`zh.json` is the reference for UI translations — note that the README's reference language is English; the two are independent. Tests assert the keys match exactly, no value is blank, the example counts line up, and each language's examples really are written in that script. A half-finished translation fails CI instead of silently falling back at runtime.
 
-## 加一种站点文案语言
+## Adding a site copy language
 
-`lib/plan.ts` 的 `LANGUAGES`（给 jev 的判断依据）和 `lib/content-parallel.ts` 的 `LANGUAGE_RULE` / `LENGTH_RULE`（给 LLM 的写作指令）。字数约束是按中文写的，其它语言要附一条换算提示。
+`LANGUAGES` in `lib/plan.ts` (the rubric Jev judges from) and `LANGUAGE_RULE` / `LENGTH_RULE` in `lib/content-parallel.ts` (the instructions the LLM writes under). Length hints are written for Chinese, so a new language needs a conversion note.
 
-## 关于「该不该问模型」
+## On what to ask a model
 
-这是这个项目唯一有主张的地方，改动时请按这条判断：
+This is the one place the project has an opinion. Please follow it when changing things:
 
-| 问题类型 | 交给谁 |
+| Kind of question | Goes to |
 |---|---|
-| 答案在用户那句话里 | **jev**，一个互斥 Choice |
-| 系统里不存在，只能生成 | **LLM** |
-| 从已有数据能推出来 | **代码**，一条规则 |
+| The answer is in what the user said | **Jev**, as one mutually exclusive Choice |
+| It does not exist in the system and can only be generated | **The LLM** |
+| It follows from data you already have | **Code**, as a rule |
 
-**置信度持续偏低不是模型的问题，是问错了对象。** 历史上有三次这样的改造，都在 README 里写着。
+**Persistently low confidence is not the model's failing. It means you asked the wrong party.** This happened three times in this codebase; all three are written up in the README.
 
-如果你发现某个判断的置信度长期在 0.3 以下，优先考虑「能不能换成一个事实问题加一条代码规则」，而不是改提示词。
+If some judgement sits below 0.3 for long, reach first for "can this become a factual question plus a code rule", not for prompt wording.
 
-## 关于测试
+## On tests
 
-新加的纯逻辑请配测试，并且**写完之后做一次变异验证**——手动改坏它测的那个东西，确认测试真的会红。第一次写就全过的测试不足以说明问题。
+New pure logic should come with tests, and **mutation-verify them afterwards** — break the thing under test by hand and confirm the test goes red. A suite that passes the moment you write it proves nothing.
 
-不要写需要网络的测试。所有现有测试加起来 2.5 秒，这条值得守住。
+Do not write tests that need the network. All of them together run in about three seconds, and that is worth keeping.
 
-## 文档
+## Fixtures
 
-README 有四份：`README.md`（中文，基准）和 `docs/README.{en,ja,ko}.md`。
+`fixtures/*.jsonl` are **real recorded runs**, never hand-written. A demo propped up by invented output nobody could reproduce is worse than no demo. To refresh one, run the app with real keys and capture the stream from `/api/generate`.
 
-改了实质内容请四份都改。如果你只会其中一两种语言，改你会的那几份并在 PR 里说明，剩下的可以后续补——**宁可有一份暂时落后，也不要机翻**。
+## Docs
 
-## 行为准则
+There are four READMEs: `README.md` (English, the reference) and `docs/README.{zh,ja,ko}.md`.
 
-就事论事，对事不对人。技术分歧拿数据说话——这个项目里的每个结论都有可复现的测量支撑，你的也应该有。
+Substantive changes should land in all four. If you only read one or two of those languages, change the ones you can and say so in the PR; the rest can follow. **A translation lagging behind is better than a machine-translated one.**
+
+## Conduct
+
+Argue about the work, not the person. Settle technical disagreements with data — every claim in this project has a reproducible measurement behind it, and yours should too.

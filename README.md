@@ -1,4 +1,4 @@
-**简体中文** · [English](docs/README.en.md) · [日本語](docs/README.ja.md) · [한국어](docs/README.ko.md)
+**English** · [简体中文](docs/README.zh.md) · [日本語](docs/README.ja.md) · [한국어](docs/README.ko.md)
 
 # loom
 
@@ -12,263 +12,260 @@
 </p>
 
 
-> 把三股线织成一块布：LLM 写的文案、Jev 做的判断、代码定的规则。
+> Three threads woven into one cloth: copy from an LLM, judgement from Jev, rules from code.
 
-一句话描述你的生意，得到一个能用的落地页。
+Describe your business in a sentence, get a landing page you can actually use.
 
 ```
-「我在杭州开了家咖啡店，主打手冲单品豆」
+"A specialty coffee shop in Brooklyn, pour-over only"
 
-0.7s   整页骨架（区块、顺序、配色全部就位）
-4.5s   首屏和页脚填入真实文案
-13s    全部区块落地
+0.7s   full skeleton (blocks, order and palette already decided)
+4.5s   hero and footer filled with real copy
+13s    every block landed
 ```
 
-区别不在于「又一个 AI 建站」，而在于**三层各司其职**，每一层只做自己擅长的事。
+What sets this apart is not that AI builds a site. It is that **three layers each do only what they are good at**.
 
-## 为什么要分三层
+## Why three layers
 
-生成式模型什么都能写，但你没法保证它写出来的结构合法。约束式模型永远合法，但它一个字都造不出来。把两者混着用，或者只用其中一个，都会在某个地方塌掉。
+A generative model will write anything, but you cannot guarantee the structure it emits is valid. A constrained model is always valid, but it cannot invent a single word. Use either alone, or blend them carelessly, and something collapses.
 
-这个项目把决策按**信息来源**切开：
+This project splits decisions by **where the information lives**:
 
-| 层 | 负责 | 因为 |
+| Layer | Owns | Because |
 |---|---|---|
-| **LLM** | 文案 + 业务事实（几条卖点、几档价格、有没有界面截图） | 这些系统里不存在，只能生成 |
-| **[Jev](https://typesafe.ai)** | 页面原型、视觉主题、要不要某个区块、哪种社会证明 | 答案在用户那句话里，是判断 |
-| **代码** | 排版规则、区块顺序、必需区块、就绪度门控 | 这些是规则，不该问模型 |
+| **LLM** | Copy, plus facts about the business (how many selling points, how many price tiers, is there an interface to show) | None of this exists in the system; it can only be generated |
+| **[Jev](https://typesafe.ai)** | Page archetype, visual theme, whether a block belongs, which kind of social proof | The answer is already in what the user said — it is a judgement |
+| **Code** | Layout rules, block order, required blocks, readiness gating | These are rules; asking a model is the wrong move |
 
-判据很简单：**置信度持续偏低，说明问错了对象**——要么输入里没有答案，要么这件事根本不需要判断。
+The test is simple: **persistently low confidence means you asked the wrong party** — either the input holds no answer, or the question needed no judgement at all.
 
-开发过程中这条规律出现了三次，每次都靠「把问题换成一个事实问题 + 一条代码规则」解决：
+That pattern showed up three times during development. Each time the fix was to replace the question with a factual one plus a code rule:
 
 ```
-问 jev「功能区用网格还是列表」   → 0.16  ← 用户那句话里没有答案
-改成 LLM 报告「有几条卖点」     → 代码：>= 5 条用网格          确定性
+ask jev "grid or list for features?"      → 0.16  ← the request says nothing about it
+have the LLM report "how many points?"    → code: >= 5 means grid        deterministic
 
-问 jev「首屏用居中还是分栏」     → 0.28  ← 同上
-改成 LLM 报告「有没有界面截图」  → 代码：有截图才用分栏        确定性
+ask jev "centered or split hero?"         → 0.28  ← same problem
+have the LLM report "is there a UI shot?" → code: split only with a shot deterministic
 
-问 jev「用哪套视觉主题」         → 0.99  ← 「活泼」「金融客户」就在那句话里
-保留                                                      判断
+ask jev "which visual theme?"             → 0.99  ← "playful", "financial clients" are right there
+keep it                                                                  judgement
 ```
 
-## Jev 实测表现
+## Measured Jev behaviour
 
-| 判断 | 置信度 |
+| Judgement | Confidence |
 |---|---|
-| 文案语言（4 选 1） | 0.66 – 1.00 |
-| 视觉主题（6 选 1） | 0.98 – 1.00 |
-| 页面原型（6 选 1） | 0.62 – 1.00 |
-| 修改意图（6 选 1） | 0.98 – 1.00 |
-| 哪种社会证明（3 选 1） | 0.70 – 0.97 |
+| Copy language (1 of 4) | 0.66 – 1.00 |
+| Visual theme (1 of 6) | 0.98 – 1.00 |
+| Page archetype (1 of 6) | 0.62 – 1.00 |
+| Edit intent (1 of 6) | 0.98 – 1.00 |
+| Kind of social proof (1 of 3) | 0.70 – 0.97 |
 
 ```
-咖啡店   → 线下门店页@1.00  warm@0.99   → Nav HeroCentered Testimonials Gallery Pricing Contact FAQ Footer
-摄影师   → 线下门店页@0.62  ink@1.00    → Nav HeroCentered Testimonials Gallery Pricing Contact Footer
-合规SaaS → 完整落地页@1.00  corporate@1 → Nav HeroSplit Testimonials FeatureGrid Steps Pricing FAQ CTABand Footer
+coffee shop     → local page@1.00   warm@0.99      → Nav HeroCentered Testimonials Gallery Pricing Contact FAQ Footer
+photographer    → local page@0.62   ink@1.00       → Nav HeroCentered Testimonials Gallery Pricing Contact Footer
+compliance SaaS → landing@1.00      corporate@1.00 → Nav HeroSplit Testimonials FeatureGrid Steps Pricing FAQ CTABand Footer
 ```
 
-全部是**互斥单选**——概率必须和为 1，干扰项要赢就得抢走概率质量。换成「每个候选一个独立 yes/no」，40 个选项时就会有约 5% 的假阳性混进结果。这个差别是结构性的，不是调提示词能解决的。
+Every one is a **single mutually exclusive choice** — probabilities must sum to one, so a distractor can only win by taking mass from the right answer. Ask instead "one independent yes/no per candidate" and at 40 options roughly 5% of them leak in as false positives. That gap is structural, not something prompt wording fixes.
 
-jev 全程约 3 次调用、不到 1 秒、$0.001 量级。**瓶颈始终是 LLM 写文案**。
+Jev costs about three calls, under a second, on the order of $0.001 per site. **The LLM writing copy is always the bottleneck.**
 
-## 跑起来
+## Running it
 
-不配 key 也能跑。`npm run dev` 之后直接打开就是**演示模式**：回放一段真实录制的运行，连流式时序都是原样的，界面上会明说这是回放。
+You can run it without keys. `npm run dev` and open it — that is **demo mode**: a real recorded run replayed with its original streaming timing, and the UI says so plainly.
 
 ```bash
 git clone https://github.com/yldm-tech/loom
 cd loom
 npm install
-npm run dev          # 演示模式，零配置
+npm run dev          # demo mode, zero config
 ```
 
-要实时生成就补上 key：
+Add keys to generate for real:
 
 ```bash
-cp .env.example .env.local   # 填 JEV_TOKEN 和 LLM_TOKEN
+cp .env.example .env.local   # fill in JEV_TOKEN and LLM_TOKEN
 ```
 
-`JEV_TOKEN` 从 [typesafe.ai](https://typesafe.ai) 拿。`LLM_TOKEN` 可以是任何 OpenAI 兼容端点——OpenAI、OpenRouter、网关、本地 llama.cpp 都行，改 `LLM_BASE_URL` 和 `LLM_MODEL` 即可。
+Get `JEV_TOKEN` from [typesafe.ai](https://typesafe.ai). `LLM_TOKEN` works with any OpenAI-compatible endpoint — OpenAI, OpenRouter, a gateway, a local llama.cpp server — just set `LLM_BASE_URL` and `LLM_MODEL`.
 
-`fixtures/*.jsonl` 是**真跑出来的**，不是手写的。一个靠人工编造的漂亮输出来撑场面的 demo，比没有 demo 更糟。
+The files under `fixtures/` are **actual recorded runs**, not hand-written. A demo propped up by invented output nobody could reproduce is worse than no demo.
 
-## 能改什么
+## Editing afterwards
 
-生成完之后直接用大白话改，每次一个请求、200–400ms、**不重新生成任何文案**：
+Say what you want in plain language. One request, 200–400 ms, and **no copy is regenerated**:
 
-| 你说 | 结果 |
+| You say | Result |
 |---|---|
-| 不要定价了 | `remove` → pricing `1.00` |
-| 换个更活泼的配色 | `theme` → coral `1.00` |
-| 导航条居中 | `restyle` → nav_centered `1.00` |
-| 换个nav样式 | `restyle` → 任取一个不同的（`0.34`，三个都行） |
-| 功能区改成列表 | `restyle` → features_list `1.00` |
-| 帮我部署上线 | `unclear` `1.00` |
+| drop the pricing | `remove` → pricing `1.00` |
+| make the palette more playful | `theme` → coral `1.00` |
+| center the nav bar | `restyle` → nav_centered `1.00` |
+| change the nav style | `restyle` → any other one (`0.34`, all three are fine) |
+| make features a list | `restyle` → features_list `1.00` |
+| deploy this for me | `unclear` `1.00` |
 
-最后一条是重点：**做不到的事就说做不到**，不硬凑成某个修改。
+That last row matters most: **when it cannot do something it says so**, instead of forcing the request into the nearest available edit.
 
-这里用的是[投机扇出](https://docs.typesafe.ai/patterns/fan-out.md)——「删哪个」「加哪个」「换哪个主题」「哪个区块换版式」全部在同一个请求里问，代码只读赢的那个分支。多花 token，省掉往返。
+This uses [speculative fan-out](https://docs.typesafe.ai/patterns/fan-out.md) — which block to remove, which to add, which theme, which block to restyle, all asked in one request, with code reading only the branch that won. More tokens, one fewer round trip.
 
-### 同一个 0.34，有时要拦有时不用
-
-```
-换个nav样式   → restyle@1.00  variant=nav_centered@0.34   执行（任取）
-换个导航栏样式 → theme@0.87    theme_target=coral@0.15     拦截
-```
-
-「换一个」本来就不指定换成哪个，排除当前变体后三个都可以，概率均分是**正确答案**。而「换个导航栏样式」被误判成换整站配色时，0.15 说明它压根不知道换成什么——那个必须拦。
-
-**阈值不是全局常数，取决于选错的代价。**
-
-## 语言是判断，不是检测
-
-站点文案的语言也走 jev，和主题、原型同在一次请求里，不多一次往返。
+### The same 0.34, sometimes blocked and sometimes not
 
 ```
-我在杭州开了家咖啡店                        → zh @1.00
-我们做数据合规 SaaS，卖给海外客户，要做英文站   → en @1.00   ← 中文描述，英文站
-A small bakery in Brooklyn                → en @0.66
-東京で小さなラーメン屋をやっています            → ja @0.99
+change the nav style     → restyle@1.00  variant=nav_centered@0.34   executed (any)
+change the navbar style  → theme@0.87    theme_target=coral@0.15     blocked
 ```
 
-第二条是重点。**用什么语言写不等于用什么语言描述**——有人用中文讲自己的生意，但要做给海外客户看的英文站，而且他通常会在那句话里说出来。纯检测必然答错这条，判断能答对。
+"Change it" names no destination, so with the current variant excluded all three remaining options are acceptable and an even split is the **correct answer**. But when "change the navbar style" was misread as a whole-site recolour, that 0.15 meant it had no idea what to change to — and that one has to be blocked.
 
-Brooklyn 那条 `0.66` 偏低也是对的：一句英文描述没有明示要什么语言，`en` 是推断不是明示，概率该分散一些。
+**A threshold is not a global constant. It follows from the cost of being wrong.**
 
-支持 `zh` / `en` / `ja` / `ko` / `zh-Hant`。字数约束是按中文写的，其它语言会附一条换算提示。
+## Language is a judgement, not a detection
 
-编辑器界面本身是另一回事：中日英韩四种，按 `navigator.languages` 自动选，也能手动切。翻译在 `locales/*.json`，加一种语言就是加一个文件加一行。**`zh.json` 是基准，测试断言其它文件的 key 完全一致**——半拉翻译会让 CI 红，而不是运行时静默回落成中文。
+The language the site is written in also goes to Jev, in the same request as theme and archetype, so it costs no extra round trip.
 
-## 导出
+```
+我在杭州开了家咖啡店                           → zh @1.00
+我们做数据合规 SaaS，卖给海外客户，要做英文站     → en @1.00   ← described in Chinese, wants English
+A small bakery in Brooklyn                   → en @0.66
+東京で小さなラーメン屋をやっています              → ja @0.99
+```
 
-三种，都从**同一份渲染结果**生成，不存在第二套布局代码。
+The second line is the point. **What you write in is not what you want written** — someone describes their business in Chinese but needs an English site for overseas customers, and they usually say so in that very sentence. Pure detection gets this wrong every time; judgement gets it right.
 
-| 导出 | 大小 | 给谁 |
+The `0.66` on the Brooklyn line is also correct: an English sentence that never states a target language makes `en` an inference rather than an instruction, so the probability should spread.
+
+Supports `zh` / `en` / `ja` / `ko` / `zh-Hant`. Length hints are written for Chinese, so other languages get a conversion note appended.
+
+The editor UI is a separate matter: Chinese, English, Japanese and Korean, picked from `navigator.languages` and switchable by hand. Translations live in `locales/*.json`; adding a language means adding a file and one line. **`zh.json` is the reference and tests assert the other files carry exactly its keys** — a half-finished translation fails CI instead of silently falling back to Chinese at runtime.
+
+## Export
+
+Three formats, all derived from **the same rendered result**. There is no second copy of the layout code.
+
+| Export | Size | For |
 |---|---|---|
-| `site.html` | 36 KB | 直接挂上去，双击就开 |
-| `Site.tsx` | 34 KB | 拿去继续开发，`tsc --strict` 编译通过 |
-| `spec.json` | 几 KB | 存起来或喂给别的渲染器 |
+| `site.html` | 36 KB | Put it online, or just double-click it |
+| `Site.tsx` | 34 KB | Keep developing; compiles under `tsc --strict` |
+| `spec.json` | a few KB | Archive it, or feed another renderer |
 
 ### Site.tsx
 
-一个扁平组件，除 React 外零依赖。主题色、字体、圆角全在最外层那一个 style 对象里，换皮就改那一处。Tailwind 类名保留。
+One flat component, no dependency beyond React. Colours, fonts and radii all live in a single style object on the outermost element, so retheming means editing one place. Tailwind class names are preserved.
 
-刻意不做组件拆分——生成出来的文件，能从头读到尾自己拆，好过一个得先反推的结构。
+Component splitting is deliberately skipped — a generated file you can read top to bottom and cut apart yourself beats a structure you have to reverse-engineer first.
 
-验证方式是真跑 `tsc --noEmit --strict --jsx react-jsx` 并**按退出码判定**。第一版就是这么发现 CSS 自定义属性在 `React.CSSProperties` 里不合法的，现在带 `as CSSProperties` 断言。
+Verification is a real `tsc --noEmit --strict --jsx react-jsx` run, **judged by exit code**. That is how the first version turned out not to compile: CSS custom properties are not valid in `React.CSSProperties`. It now emits an `as CSSProperties` cast.
 
 ### site.html
 
-渲染结果 + 它**真正用到的那些 CSS 规则**。
+The rendered result plus **only the CSS rules it actually uses**.
 
 ```
-页面全部 CSS   22 KB      ← 生产构建下 Tailwind 已经 tree-shake 过
-实际导出       29 KB      ← 含 HTML
-编辑器自身样式  已剔除      ← 输入框、按钮、决策日志一条不带
+all CSS on the page   22 KB      ← Tailwind already tree-shakes in a production build
+actual export         29 KB      ← including the HTML
+editor's own styles   removed    ← no input box, buttons or decision log
 ```
 
-过滤靠 `root.matches()` / `root.querySelector()` 逐条试选择器，伪类剥掉后用基础选择器试，`@media` 递归处理且内部为空则整条丢，`:root` 和 `@font-face` 无条件保留，**解析不了的选择器保留而不是丢弃**——文件大一点好过悄悄坏掉。
+Filtering tests each selector with `root.matches()` / `root.querySelector()`, strips pseudo-classes and retries on the base selector, recurses into `@media` and drops the whole block when nothing inside survives, and keeps `:root` and `@font-face` unconditionally. **A selector it cannot parse is kept rather than dropped** — a slightly larger file beats a silently broken one.
 
-体积上只省 16%（Tailwind 本来就不大），真正的收获是导出的网站里不再混进编辑器自己的样式。实现见 `lib/export.ts`，**没有第二套渲染器**，区块布局只有 `app/registry.tsx` 一份。
+Size-wise it only saves 16% (Tailwind was never the problem). The real gain is that the exported site no longer carries the editor's own styling. See `lib/export.ts`; there is **no second renderer**, block layout exists only in `app/registry.tsx`.
 
-## 主题即数据
+## Themes are data
 
-6 套主题，每套是一组完整的设计 token。`app/registry.tsx` 里**没有任何十六进制色值**，全部走 CSS 变量：
+Six themes, each a complete set of design tokens. `app/registry.tsx` contains **no hex values at all** — everything reads from CSS variables:
 
-| 主题 | 特征 | 适合 |
+| Theme | Character | Suits |
 |---|---|---|
-| `forest` | 墨绿 + 米白 | 工具、开源、户外 |
-| `corporate` | 藏蓝 + 6px 小圆角 | 金融、法务、企业 |
-| `warm` | 焦糖棕 + 衬线字 + 16px 圆角 | 餐饮、手作、民宿 |
-| `ink` | 纯黑白 + 零圆角 + 大留白 | 摄影、作品集、出版 |
-| `terminal` | 深色底 + 等宽字 + 青绿 | 开发者工具、基础设施 |
-| `coral` | 明亮橙 + 20px 大圆角 | 消费、教育、社交 |
+| `forest` | Deep green + off-white | Tools, open source, outdoors |
+| `corporate` | Navy + 6px radius | Finance, legal, enterprise |
+| `warm` | Caramel + serif + 16px radius | Food, craft, guesthouses |
+| `ink` | Pure black and white, zero radius, generous space | Photography, portfolios, publishing |
+| `terminal` | Dark ground + monospace + teal | Developer tools, infrastructure |
+| `coral` | Bright orange + 20px radius | Consumer, education, social |
 
-所以换主题是纯客户端的一个 prop 改动：不调模型、不动文案、瞬间完成。内容、结构、外观三者彻底解耦。
+Switching theme is therefore a single client-side prop change: no model call, no copy touched, instant. Content, structure and appearance are fully decoupled.
 
-## 13 个区块，6 种页面原型
+## 13 blocks, 6 page archetypes
 
-区块：导航（4 个变体）、首屏（2）、社会证明（3）、功能区（2）、作品展示、对比表、流程、团队、价格（2）、联系信息、常见问题、转化条、页脚。
+Blocks: nav (4 variants), hero (2), social proof (3), features (2), gallery, comparison, steps, team, pricing (2), contact, FAQ, CTA band, footer.
 
-原型决定哪些区块是**必需**的——模型无权删掉落地页的首屏，也无权删掉门店页的联系方式：
+The archetype decides which blocks are **required** — no model gets to drop a landing page's hero, or a local business's address:
 
-| 原型 | 必需 | 可选 |
+| Archetype | Required | Optional |
 |---|---|---|
-| 完整落地页 | nav hero features cta footer | social pricing faq gallery steps |
-| 线下门店页 | nav hero **contact** footer | gallery steps social faq pricing |
-| 工程向详情页 | nav hero features footer | faq social steps |
-| 定价页 | nav pricing faq cta footer | social hero |
-| 开源项目主页 | nav hero features footer | faq social pricing |
-| 极简单页 | hero | nav footer |
+| Landing page | nav hero features cta footer | social pricing faq gallery steps |
+| Local business | nav hero **contact** footer | gallery steps social faq pricing |
+| Technical detail | nav hero features footer | faq social steps |
+| Pricing page | nav pricing faq cta footer | social hero |
+| Open-source home | nav hero features footer | faq social pricing |
+| Minimal one-pager | hero | nav footer |
 
-## 测试
+## Tests
 
 ```bash
-npm test          # 39 个，2.5 秒，不碰网络
+npm test          # 39 of them, 2.5s, no network
 ```
 
-测的是**三条被从模型手里拿回来的规则**——卖点条数决定网格还是列表、价格档数决定单档还是对比、有没有界面截图决定首屏版式。这几条一旦回归，决策就悄悄还给了一个答不了的模型，所以它们最不该漂。
+They cover **the three rules taken back from the model** — selling-point count decides grid vs list, tier count decides single vs comparison, whether there is a UI screenshot decides the hero layout. If any of these drift, the decision quietly goes back to a model that cannot make it, so they are the ones that must not move.
 
-另外测了就绪度门控（空数组算缺失而不是就绪）、`asSettled` 的完成顺序、以及 JSX 序列化的几个坑：CSS 自定义属性要带 `as CSSProperties`、渐变里的分号不能当分隔符、含花括号的文本要包起来、`blk-in` 动画类和 `<style>` 块不能带进导出。
+Also covered: readiness gating (an empty array counts as missing, not ready), `asSettled` completion ordering, and the JSX serializer's sharp edges — custom properties need `as CSSProperties`, semicolons inside a gradient are not separators, text containing braces must be wrapped, and the `blk-in` animation class and `<style>` block must not reach the export.
 
-还有几条结构不变量：每个原型引用的槽位必须存在、必需和可选不能重叠、`SLOT_ORDER` 必须不重不漏覆盖全部槽位、每个变体都得声明自己需要哪些字段。
+Plus structural invariants: every slot an archetype references must exist, required and optional must not overlap, `SLOT_ORDER` must cover every slot exactly once, and every variant must declare the fields it needs.
 
-语言文件另有一组：key 必须和 `zh.json` 完全一致、不能有空串、例子条数要一样、而且每种语言的例子必须真的用那种文字写（用正则查汉字 / 假名 / 谚文）。
+Locale files get their own set: keys must match `zh.json` exactly, no blank values, the same number of examples, and each language's examples must actually be written in that script (checked with Han / kana / Hangul regexes).
 
-**测试写完都做了变异验证**，第一次写就全过的测试是可疑的：
+**Every test was mutation-verified afterwards**, because a suite that passes the moment you write it proves nothing:
 
 ```
-把网格阈值 5 改成 4      → 红 ✓      ja.json 少一个 key    → 红 ✓
-把首屏条件反过来         → 红 ✓      ja.json 某个值留空     → 红 ✓
-让空数组算就绪          → 红 ✓      ja.json 例子少两条     → 红 ✓
-去掉 CSSProperties 断言 → 红 ✓      ko.json 混进英文例子   → 红 ✓
-不再剔除 style 块       → 红 ✓
+grid threshold 5 → 4        → red ✓    ja.json missing a key      → red ✓
+invert the hero condition   → red ✓    ja.json blank value        → red ✓
+let an empty array be ready → red ✓    ja.json two fewer examples → red ✓
+drop the CSSProperties cast → red ✓    ko.json English example    → red ✓
+stop stripping style blocks → red ✓
 ```
 
-## 结构
+## Layout
 
 ```
 lib/
-  catalog.ts           组件契约：允许出现的区块和它们的 props
-  themes.ts            6 套设计 token + 给 jev 的选择依据
-  plan.ts              页面原型、槽位变体、代码规则 layoutRules()
-  content.ts           文案的形状 + 把文案填进区块
-  content-parallel.ts  四块并行生成 + 重试 + 形状校验 + 就绪度
-  compose.ts           三层编排，流式吐出
-  edit.ts              修改意图识别（投机扇出）
-  export.ts            自包含 HTML 导出，只带用到的 CSS
-  export-tsx.ts        React 源码导出，DOM → JSX
-  i18n.ts              界面语言，读 locales/*.json
-  demo.ts              无 key 时回放 fixtures/ 里的真实录制
-  *.test.ts            纯逻辑的测试，不碰网络
+  catalog.ts           component contract: which blocks may appear, and their props
+  themes.ts            6 token sets, plus the rubric Jev chooses from
+  plan.ts              archetypes, slot variants, code rules in layoutRules()
+  content.ts           the shape of the copy, and how it fills each block
+  content-parallel.ts  four parallel chunks, retry, shape validation, readiness
+  compose.ts           three-layer orchestration, streamed
+  edit.ts              edit intent recognition (speculative fan-out)
+  export.ts            self-contained HTML, only the CSS in use
+  export-tsx.ts        React source export, DOM → JSX
+  i18n.ts              UI language, reads locales/*.json
+  *.test.ts            pure-logic tests, no network
 locales/
-  zh|en|ja|ko.json     界面翻译，zh 为基准
-fixtures/
-  zh|en|ja|ko.jsonl    真实录制的运行，供演示模式回放
+  zh|en|ja|ko.json     UI translations, zh is the reference
 app/
-  page.tsx             界面、流式消费、客户端改主题和版式
-  registry.tsx         区块长什么样，全部读 CSS 变量
-  api/generate         生成
-  api/edit             改
+  page.tsx             the editor, stream consumption, client-side retheme/restyle
+  registry.tsx         what blocks look like, all via CSS variables
+  api/generate         generation
+  api/edit             edits
 ```
 
-## 已知边界
+## Known limits
 
-- **LLM 会吐非法 JSON。** 实测两次里错过一次。已有重试和形状校验兜底，但这是生成式模型的固有属性——jev 那一侧从头到尾没出过一次格式错误。
-- **13 秒不算快**，而且全在 LLM 写文案上。骨架屏让首屏 0.7 秒可见，但总时长没变。
-- **区块类型 13 种**，还缺联系表单、视频、地图。`Gallery` 只出占位色块加文字说明，不生成图片。
-- **`Site.tsx` 是扁平的一大段 JSX**，不是拆好的组件树。能编译、能改，但要长期维护还得自己拆。
-- **文案质量取决于模型。** 换更强的模型会明显变好，也会明显变慢。
+- **The LLM emits invalid JSON.** Measured: roughly one run in two. Retry and shape validation catch it, but this is inherent to generative models — the Jev side never produced a single malformed response.
+- **13 seconds is not fast**, and all of it is the LLM writing copy. Skeletons make the first paint visible at 0.7s, but the total is unchanged.
+- **13 block types**, still missing a contact form, video and maps. `Gallery` renders tinted placeholder tiles with captions; it does not generate images.
+- **`Site.tsx` is one flat stretch of JSX**, not a split component tree. It compiles and it is editable, but long-term maintenance means splitting it yourself.
+- **Copy quality follows the model.** A stronger one is noticeably better, and noticeably slower.
 
-## 参与
+## Contributing
 
-改动请看 [CONTRIBUTING.md](CONTRIBUTING.md)。加区块、加主题、加界面语言各有一条既定路径，都不长。
+See [CONTRIBUTING.md](CONTRIBUTING.md). Adding a block, a theme or a UI language each has a short, established path.
 
 ## Star History
 
-如果这个思路对你有用，点个 star 是最直接的反馈。
+If the approach is useful to you, a star is the most direct feedback.
 
 <a href="https://star-history.com/#yldm-tech/loom&Date">
   <picture>
@@ -277,6 +274,6 @@ app/
   </picture>
 </a>
 
-## 许可
+## License
 
-Apache-2.0。基于 [json-render](https://github.com/vercel-labs/json-render)（Vercel Labs，Apache-2.0）的已发布 npm 包，未内嵌其源码。判断由 [TypeSafe](https://typesafe.ai) 的 Jev 模型提供。详见 `NOTICE`。
+Apache-2.0. Built on the published npm packages of [json-render](https://github.com/vercel-labs/json-render) (Vercel Labs, Apache-2.0); no upstream source is vendored. Judgements come from [TypeSafe](https://typesafe.ai)'s Jev model. See `NOTICE`.

@@ -9,8 +9,8 @@ import { describe, expect, it } from "vitest";
  */
 const ROOT = join(import.meta.dirname, "..");
 const DOCS = {
-  zh: "README.md",
-  en: "docs/README.en.md",
+  en: "README.md",
+  zh: "docs/README.zh.md",
   ja: "docs/README.ja.md",
   ko: "docs/README.ko.md",
 } as const;
@@ -29,9 +29,9 @@ describe("READMEs", () => {
   );
 
   it("all share the same heading outline, depth included", () => {
-    const reference = outline(texts.zh!);
+    const reference = outline(texts.en!);
     for (const [lang, text] of Object.entries(texts)) {
-      expect(outline(text), `${lang}'s section structure differs from zh`).toEqual(reference);
+      expect(outline(text), `${lang}'s section structure differs from en`).toEqual(reference);
     }
   });
 
@@ -40,7 +40,7 @@ describe("READMEs", () => {
       const header = text.split("\n")[0]!;
       for (const other of Object.keys(DOCS)) {
         if (other === lang) continue;
-        const target = other === "zh" ? "README.md" : `README.${other}.md`;
+        const target = other === "en" ? "README.md" : `README.${other}.md`;
         expect(header, `${lang} does not link to ${other}`).toContain(target);
       }
     }
@@ -74,7 +74,7 @@ describe("READMEs", () => {
     // so anchoring on what follows would compare different things per language.
     const figures = (text: string) =>
       [...text.matchAll(/\b0\.\d\d\b/g)].map((m) => m[0]).sort();
-    const reference = figures(texts.zh!);
+    const reference = figures(texts.en!);
     for (const [lang, text] of Object.entries(texts)) {
       expect(figures(text), `${lang} quotes different numbers`).toEqual(reference);
     }

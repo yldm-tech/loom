@@ -5,6 +5,7 @@ import { JSONUIProvider, Renderer } from "@json-render/react";
 import type { Spec } from "@json-render/core";
 import { registry } from "./registry";
 import { THEMES } from "@/lib/themes";
+import { validateProps } from "@/lib/catalog";
 import { elementsFor, type SiteContent } from "@/lib/content";
 import { isReady } from "@/lib/content-parallel";
 import { layoutRules, SLOTS, SLOT_ORDER, type SlotKey } from "@/lib/plan";
@@ -241,6 +242,12 @@ export default function Page() {
       }
       const element = elementsFor(content)[plan.variant];
       if (!element) return;
+      // compose.ts checks every element against its catalog schema before the spec leaves the server, and these two branches splice past that: the element is assembled here, from content this client happens to be holding. isReady above says the fields are there; only the catalog says they are the right shape. A restyle onto a variant the copy cannot fill is the same non-event either way, and saying so beats swapping in a block whose props the renderer will cast rather than check.
+      const problem = validateProps(element.type, element.props ?? {});
+      if (problem) {
+        setEditLog((log) => [...log, `  ${t.notReady}`]);
+        return;
+      }
       setVariants((current) => ({ ...current, [plan.slot]: plan.variant }));
       setSpec((current) => {
         if (!current) return current;
@@ -269,7 +276,7 @@ export default function Page() {
         return;
       }
       const element = elementsFor(content)[id as keyof ReturnType<typeof elementsFor>];
-      if (!element) {
+      if (!element || validateProps(element.type, element.props ?? {})) {
         setEditLog((log) => [...log, `  ${t.notReady}`]);
         return;
       }

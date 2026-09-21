@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { THEMES, themeVars } from "./themes";
+import { isThemeKey, THEMES, themeVars } from "./themes";
 
 /**
  * Contrast is a property of the token values, so it can be checked without a browser. A theme that ships unreadable buttons is a defect in the generator, not a matter of taste, and it would otherwise only surface in an audit of one generated page that happened to use that theme.
@@ -112,5 +112,13 @@ describe("themeVars", () => {
 
   it("falls back to a real theme for an unknown name", () => {
     expect(themeVars("nope")).toEqual(themeVars("forest"));
+  });
+
+  it("tells a real theme name from anything else, so the fallback above stops being the only thing that notices", () => {
+    // themeVars has to answer something — the renderer cannot draw nothing — and answering forest is right. What was missing is any way to find out it happened: an unrecognised key rendered green while the decision log, the theme picker and the exported tokens all named something else. isThemeKey is what the boundaries call before the value gets that far.
+    for (const key of Object.keys(THEMES)) expect(isThemeKey(key)).toBe(true);
+    for (const value of ["nope", "midnight-neon", "Forest", "", "constructor", "toString", null, undefined, 7, ["forest"], { forest: true }]) {
+      expect(isThemeKey(value), `${String(value)} passed as a theme`).toBe(false);
+    }
   });
 });

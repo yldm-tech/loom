@@ -336,12 +336,12 @@ The audit needs a running server and `npx playwright install chromium`, so it st
 
 
 ```bash
-npm test          # 347 of them, ~1.5s, no network
+npm test          # 362 of them, ~1.5s, no network
 ```
 
 They cover **the three rules taken back from the model** — selling-point count decides grid vs list, tier count decides single vs comparison, whether there is a UI screenshot decides the hero layout. If any of these drift, the decision quietly goes back to a model that cannot make it, so they are the ones that must not move.
 
-Also covered: readiness gating (an empty array counts as missing, not ready), `asSettled` completion ordering, and the JSX serializer's sharp edges — custom properties need `as CSSProperties`, semicolons inside a gradient are not separators, text containing braces must be wrapped, and the `blk-in` animation class and `<style>` block must not reach the export. The agent-facing surfaces get the same treatment: `bundle.zip` is read back by a second, deliberately slow zip reader written in the test file rather than by the writer that produced it, `/llms.txt` is parsed against the llmstxt.org shape and checked line by line against the real block, theme and source tables, and the MCP server is driven through the handshake, every tool it advertises, and a series of messages that arrive broken.
+Also covered: the catalog contract, now enforced rather than declared — a block whose props do not satisfy the schema `lib/catalog.ts` states for it holds its place as a skeleton instead of reaching a renderer that casts; readiness gating (an empty array counts as missing, not ready), `asSettled` completion ordering, and the JSX serializer's sharp edges — custom properties need `as CSSProperties`, semicolons inside a gradient are not separators, text containing braces must be wrapped, and the `blk-in` animation class and `<style>` block must not reach the export. The agent-facing surfaces get the same treatment: `bundle.zip` is read back by a second, deliberately slow zip reader written in the test file rather than by the writer that produced it, `/llms.txt` is parsed against the llmstxt.org shape and checked line by line against the real block, theme and source tables, and the MCP server is driven through the handshake, every tool it advertises, and a series of messages that arrive broken.
 
 Plus structural invariants: every slot an archetype references must exist, required and optional must not overlap, `SLOT_ORDER` must cover every slot exactly once, and every variant must declare the fields it needs.
 

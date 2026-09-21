@@ -6,7 +6,7 @@
 
 ```bash
 npm install
-npm test                     # 347 个，约 1.5 秒，不碰网络
+npm test                     # 362 个，约 1.5 秒，不碰网络
 npm run dev                  # 演示模式，不需要 key
 ```
 

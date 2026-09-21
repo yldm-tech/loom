@@ -113,14 +113,26 @@ describe("replayEdit", () => {
       .map((m) => m[1]!.trim())
       .filter((s) => s.length > 2);
 
-  it("honours every edit its own placeholder suggests, in every language", () => {
+  const placeholderOf = (locale: string) =>
+    (
+      JSON.parse(
+        readFileSync(join(import.meta.dirname, "..", "locales", `${locale}.json`), "utf8"),
+      ) as { editPlaceholder: string }
+    ).editPlaceholder;
+
+  /** The blocks that locale's own recording ends up with — the page the demo user is looking at when they read the placeholder. */
+  const fixtureSlots = (locale: string) =>
+    readFileSync(join(FIXTURES, `${locale}.jsonl`), "utf8")
+      .split("\n")
+      .filter((l) => l.trim())
+      .map((l) => JSON.parse(l) as { type?: string; slots?: string[] })
+      .filter((event) => event.type === "plan")
+      .at(-1)!.slots!;
+
+  it("recognises every edit its own placeholder suggests, in every language, so no suggestion is a phrase the word list has never heard of", () => {
     const everything = ["nav", "hero", "social", "pricing", "faq", "footer", "gallery"];
     for (const locale of UI_LOCALES) {
-      const dict = JSON.parse(
-        readFileSync(join(import.meta.dirname, "..", "locales", `${locale}.json`), "utf8"),
-      ) as { editPlaceholder: string };
-
-      const proposed = suggestions(dict.editPlaceholder);
+      const proposed = suggestions(placeholderOf(locale));
       expect(proposed.length, `${locale} placeholder suggests nothing parseable`).toBeGreaterThan(0);
 
       for (const suggestion of proposed) {
@@ -130,6 +142,47 @@ describe("replayEdit", () => {
         ).not.toBe("unclear");
       }
     }
+  });
+
+  /**
+   * The test above measured a page no user has: a hand-written list with every slot in it. zh's recording has no pricing block, so 「不要定价了」 — the phrase zh's own placeholder proposes — matched the pricing words, failed the presence check and fell through to the catch-all. Driving each locale's suggestions against its own fixture is the only version of this test that measures what the reader sees.
+   */
+  it("answers every placeholder suggestion against the page that locale's own fixture records, so the catch-all is never what a suggested edit gets", () => {
+    for (const locale of UI_LOCALES) {
+      const slots = fixtureSlots(locale);
+      for (const suggestion of suggestions(placeholderOf(locale))) {
+        const outcome = replayEdit(suggestion, slots, "forest");
+        const why = `${locale} suggests "${suggestion}" against [${slots.join(" ")}]`;
+        expect(outcome.blockedBy ?? "", why).not.toContain("only replays a few recorded edits");
+        if (outcome.action !== "unclear") continue;
+        // The one refusal allowed is the honest one: this page does not have that block. Anything else means the suggestion silently did nothing.
+        const named = /has no (\w+) block/.exec(outcome.blockedBy ?? "");
+        expect(named, `${why} and was refused without naming a block`).not.toBeNull();
+        expect(slots, why).not.toContain(named![1]);
+      }
+    }
+  });
+
+  it("names the block a page lacks instead of adding it, so a request to drop something absent is not answered by putting it on the page", () => {
+    const zh = fixtureSlots("zh");
+    expect(zh, "the zh fixture used to have no pricing block, which is what this guards").not.toContain("pricing");
+    const outcome = replayEdit("不要定价了", zh, "forest");
+    expect(outcome.action).toBe("unclear");
+    expect(outcome.blockedBy).toContain("has no pricing block");
+  });
+
+  it("refuses to restyle a block the page does not have, so the presence rule covers every branch and not only the ones a fixture happens to exercise", () => {
+    expect(replayEdit("换个导航栏样式", ["hero", "footer"], "forest")).toMatchObject({
+      action: "unclear",
+      blockedBy: expect.stringContaining("has no nav block"),
+    });
+  });
+
+  it("still adds a block the page lacks when nothing in the request says to take one away, so 加个 keeps working", () => {
+    expect(replayEdit("加个价格表", ["nav", "hero", "footer"], "forest")).toMatchObject({
+      action: "add",
+      slot: "pricing",
+    });
   });
 
   it("reads an instruction the same with or without its accents", () => {

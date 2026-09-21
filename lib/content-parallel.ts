@@ -61,6 +61,9 @@ function userFor(language: string, text: string): string {
   return `${text}\n\n${LANGUAGE_RULE[language] ?? LANGUAGE_RULE.zh}`;
 }
 
+/** What the retry turn is told when the server reports the previous answer was cut off by the token cap rather than finished. */
+const TRUNCATED = "上次输出写到一半就被长度上限截断了，JSON 没收尾；这次每条都写短一些，先把结构写完整";
+
 async function call(
   apiKey: string,
   system: string,
@@ -69,6 +72,8 @@ async function call(
   signal: AbortSignal,
 ): Promise<{ parsed: Record<string, unknown>; outputTokens: number }> {
   let lastProblem = "";
+  // Attempt 2 used to re-send the identical cap, which is the one malformed-JSON cause a retry cannot help with: the same budget cuts the object at the same place. The recorded happy path leaves little room to absorb a wordier language — the `place` chunk spends 1067 of its 1300 tokens in German and 1098 in Japanese — so a response the server reports as cut short buys more room on the retry instead of the same wall.
+  let budget = maxTokens;
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     const messages: { role: string; content: string }[] = [
       { role: "system", content: system },
@@ -88,7 +93,7 @@ async function call(
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, messages }),
+        body: JSON.stringify({ model: MODEL, max_tokens: budget, messages }),
         signal,
         cache: "no-store",
       });
@@ -113,16 +118,19 @@ async function call(
       throw new Error(`Copy model returned HTTP ${response.status}.${hint} ${body}`);
     }
     const body = (await response.json()) as {
-      choices?: { message: { content: string } }[];
+      choices?: { message: { content: string }; finish_reason?: string }[];
       usage?: { completion_tokens?: number };
       error?: { message: string };
     };
     if (body.error) throw new Error(body.error.message);
+    // The server already knows why the JSON is broken when it ran out of budget mid-object. Reading it turns an unexplained parse error into a complaint the model can act on, and raises the ceiling it just hit.
+    const truncated = body.choices?.[0]?.finish_reason === "length";
+    if (truncated) budget = Math.round(maxTokens * 1.5);
     const raw = body.choices?.[0]?.message?.content ?? "";
     const start = raw.indexOf("{");
     const end = raw.lastIndexOf("}");
     if (start < 0 || end <= start) {
-      lastProblem = "没有找到 JSON";
+      lastProblem = truncated ? TRUNCATED : "没有找到 JSON";
       continue;
     }
     try {
@@ -131,7 +139,8 @@ async function call(
         outputTokens: body.usage?.completion_tokens ?? 0,
       };
     } catch (error) {
-      lastProblem = error instanceof Error ? error.message : String(error);
+      const message = error instanceof Error ? error.message : String(error);
+      lastProblem = truncated ? `${TRUNCATED}（${message}）` : message;
     }
   }
   throw new Error(`两次都没拿到合法 JSON：${lastProblem}`);
@@ -235,21 +244,51 @@ export const SLOT_NEEDS: Record<string, (keyof SiteContent)[]> = {
   footer: ["brand", "footerColumns", "footerNote"],
 };
 
+/**
+ * Present is not the same as usable, and the gate used to test only presence.
+ *
+ * `"contactLabels": null` is valid JSON, so neither retry attempt fires; it passed the old `value !== undefined` test, the contact block was declared ready, and the renderer threw on `labels.address` during render. `"secondaryCta": ""` passed the same way and drew a button with no label. The test is on the runtime value rather than on a table of which fields hold arrays, because that table already exists as the SiteContent type and a second copy of it would drift away from the first.
+ */
+function usable(value: unknown) {
+  if (value === null || value === undefined) return false;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "string") return value.trim() !== "";
+  return true;
+}
+
 export function isReady(id: string, content: Partial<SiteContent>) {
   const needs = SLOT_NEEDS[id];
   if (!needs) return false;
-  return needs.every((field) => {
-    const value = content[field];
-    return Array.isArray(value) ? value.length > 0 : value !== undefined;
-  });
+  return needs.every((field) => usable(content[field]));
 }
 
-/** Yields each promise's result in completion order rather than call order. */
-export async function* asSettled<T>(promises: Promise<T>[]): AsyncGenerator<T> {
-  const pending = new Map(promises.map((p, i) => [i, p.then((v) => [i, v] as const)]));
-  while (pending.size > 0) {
-    const [index, value] = await Promise.race(pending.values());
-    pending.delete(index);
-    yield value;
-  }
+export type Settled<T> =
+  | { status: "fulfilled"; value: T }
+  | { status: "rejected"; reason: unknown };
+
+/**
+ * Yields each promise's outcome in completion order rather than call order.
+ *
+ * It was named for settling and did not settle: the loop raced the raw promises, so the first rejection took the race down with it and the caller lost every result that had already landed — one failed copy chunk discarded a page whose other blocks were already painted. It now reports each outcome the way Promise.allSettled does, and the caller decides what a failure costs.
+ *
+ * The handlers are attached here in the function body rather than inside the generator, which is why this is a plain function returning an AsyncGenerator instead of an `async function*`: a generator body does not run until its first next(), and a rejection landing in that gap is an unhandled rejection that takes the process down before any caller can catch it.
+ */
+export function asSettled<T>(promises: Promise<T>[]): AsyncGenerator<Settled<T>> {
+  const pending = new Map<number, Promise<readonly [number, Settled<T>]>>();
+  promises.forEach((promise, index) => {
+    pending.set(
+      index,
+      promise.then(
+        (value) => [index, { status: "fulfilled", value }] as const,
+        (reason: unknown) => [index, { status: "rejected", reason }] as const,
+      ),
+    );
+  });
+  return (async function* () {
+    while (pending.size > 0) {
+      const [index, settled] = await Promise.race(pending.values());
+      pending.delete(index);
+      yield settled;
+    }
+  })();
 }

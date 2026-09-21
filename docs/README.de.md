@@ -290,7 +290,7 @@ Die Origin stammt aus der Anfrage und nicht aus einer Konstante zur Build-Zeit, 
 
 Derselbe generierte Text in allen sechs Themes. Umschalten ist eine einzige Prop-Änderung im Client: kein Modellaufruf, keine Neuerzeugung.
 
-Sechs Themes, jedes ein vollständiger Satz Design-Tokens. `app/registry.tsx` enthält **keinen einzigen Hex-Wert** — alles kommt aus CSS-Variablen.
+Sechs Themes, jedes ein vollständiger Satz Design-Tokens. Alle Farben in `app/registry.tsx` kommen aus CSS-Variablen, mit **genau einer Ausnahme**, die ein Test bei einer hält: die drei macOS-Ampelpunkte im nachgebauten Screenshot im geteilten Hero, die den Fensterrahmen eines anderen Betriebssystems zeichnen und nicht die Palette von loom.
 
 | Theme | Charakter | Passt zu |
 |---|---|---|
@@ -333,7 +333,7 @@ Die Prüfung braucht einen laufenden Server und `npx playwright install chromium
 
 
 ```bash
-npm test          # 250 Stück, rund 1,5 s, ohne Netz
+npm test          # 347 Stück, rund 1,5 s, ohne Netz
 ```
 
 Sie decken **die drei dem Modell abgenommenen Regeln** ab: Die Anzahl der Verkaufsargumente entscheidet Raster oder Liste, die Anzahl der Preisstufen entscheidet Einzelkarte oder Vergleich, und ob es einen Oberflächen-Screenshot gibt, entscheidet das Layout des Kopfbereichs. Driftet eine davon, geht die Entscheidung still an ein Modell zurück, das sie nicht treffen kann — sie dürfen sich also nicht bewegen.
@@ -382,7 +382,7 @@ fixtures/
   en|zh|ja|ko.jsonl    echte aufgezeichnete Läufe für den Demomodus
 app/
   page.tsx             der Editor, Stream-Verarbeitung, Theme- und Variantenwechsel im Client
-  registry.tsx         wie die Blöcke aussehen, durchgehend über CSS-Variablen
+  registry.tsx         wie die Blöcke aussehen, über CSS-Variablen
   llms.txt/            die Route /llms.txt
   api/generate         Erzeugung
   api/edit             Änderungen

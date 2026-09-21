@@ -238,6 +238,7 @@ export async function* composePlanned(
     const variants = Object.keys(SLOTS[slot].variants);
     if (variants.length === 1) picks[slot] = variants[0]!;
   }
+  // The catch is attached here, where the promise is created, and not at the await below. This request goes out now but is not awaited until the identity chunk has landed, and a rejection arriving in between is an unhandled rejection: it kills the process before any try/catch at the await site is installed. Observed against a Jev 500 — `PromiseRejectionHandledWarning`, then the run dies with a page already on screen. A variant lookup that fails costs the variants and not the page: the single-variant seeds, the layoutRules picks and the per-slot fallback below still resolve every slot. The decision log simply has no `select` line, which is the honest record of a round that produced nothing.
   const selectPromise =
     multi.length > 0
       ? ask(
@@ -257,7 +258,7 @@ export async function* composePlanned(
             ]),
           ),
           signal,
-        )
+        ).catch(() => null)
       : null;
 
   let content: Partial<SiteContent> = {};
@@ -268,9 +269,15 @@ export async function* composePlanned(
       root: { type: "Page", props: { theme: themeKey }, children: [] as string[] },
     };
     const children: string[] = [];
+    let rendered = 0;
     for (const slot of SLOT_ORDER) {
       if (!chosen.has(slot)) continue;
       const key = `slot_${slot}`;
+      // An auto slot is never put to jev and is not seeded above, so layoutRules is the only thing that can ever give it a pick — and every one of those branches is conditional on content that may not arrive. An identity answer that omits the trailing `visualKind` leaves the hero, required by all six archetypes, a grey skeleton from the frame event through to `complete`, and it exports that way; the same happens to features when the chunk returns an empty `features` array beside a populated `featuresDeep`. So a slot that reaches build time unpicked takes the first of its own variants the copy can actually fill, read off SLOTS rather than from a table of defaults copied in here. It is written back into `picks` so the stream, the exports and the edit endpoint all describe the same page, and a layoutRules rule landing later still overrides it: a default is a default, not a lock.
+      if (!picks[slot]) {
+        const fallback = Object.keys(SLOTS[slot].variants).find((id) => isReady(id, content));
+        if (fallback) picks[slot] = fallback;
+      }
       const id = picks[slot];
       const element = id ? elements[id] : undefined;
       // The frame is drawn from the plan alone; a block that has no copy yet
@@ -279,12 +286,14 @@ export async function* composePlanned(
       specElements[key] = ready
         ? { ...element, children: [] }
         : { type: "Skeleton", props: { kind: SKELETON_KIND[slot] ?? "section" }, children: [] };
+      if (ready) rendered += 1;
       children.push(key);
     }
     (specElements.root as { children: string[] }).children = children;
     return {
+      // Blocks that actually carry copy, not blocks that were planned. `children.length` counted the skeletons too, and since every archetype has a non-empty `required` it could never be zero — so the `unavailable` branch below was unreachable and a page of nothing but grey boxes reported `finish`.
       spec: { root: "root", elements: specElements, state: {} },
-      count: children.length,
+      count: rendered,
     };
   };
 
@@ -317,8 +326,8 @@ export async function* composePlanned(
     };
   }
 
-  if (selectPromise) {
-    const second = await selectPromise;
+  const second = selectPromise ? await selectPromise : null;
+  if (second) {
     inputTokens += second.usage?.input_tokens ?? 0;
     const detail: Record<string, { choice: string; confidence?: number }> = {};
     for (const slot of multi) {
@@ -348,12 +357,33 @@ export async function* composePlanned(
     const context = contextFrom(prompt, content as Record<string, unknown>);
     const names: ChunkName[] = ["features", "commerce", "social", "place"];
     const jobs = names.map((name) =>
-      generateChunk(llmKey, name, context, signal, language).then((result) => ({
-        name,
-        result,
-      })),
+      generateChunk(llmKey, name, context, signal, language).then(
+        (result) => ({ name, result }),
+        (error: unknown) => {
+          // The chunk's name is pinned to the error here because asSettled reports the reason without saying which promise produced it, and `两次都没拿到合法 JSON` on its own does not tell the reader which blocks are missing. The original object is kept rather than re-wrapped: an abort arrives as a DOMException, which is not an Error under jsdom, and rebuilding it as one would strip the type the caller distinguishes a cancelled run by.
+          if (error && typeof error === "object") throw Object.assign(error, { chunk: name });
+          throw Object.assign(new Error(String(error)), { chunk: name });
+        },
+      ),
     );
-    for await (const { name, result } of asSettled(jobs)) {
+    for await (const settled of asSettled(jobs)) {
+      if (settled.status === "rejected") {
+        // README measures malformed JSON at roughly one run in two, so one chunk failing both its attempts is an ordinary outcome, not a catastrophe. It used to be one: the rejection escaped composePlanned, the route turned it into an `error` event, and the client froze a page whose nav, hero, testimonials and pricing had already painted — every export button unmounted with it. A failed chunk now costs its own blocks and nothing else. There is no new event tag for it: the blocks it would have filled stay skeletons, which is exactly what this stream already means by "no copy here", and the phase line in the decision log names the chunk that produced none.
+        const failure = settled.reason as Error & { chunk?: ChunkName };
+        // An abort is not a per-chunk failure. The whole run is over, every remaining chunk will reject the same way, and the caller needs to hear it once.
+        if (signal.aborted) throw failure;
+        const { spec } = buildSpec();
+        yield {
+          type: "partial",
+          phase: failure.chunk ?? "chunk",
+          spec,
+          failed: failure.message,
+          outputTokens,
+          elapsedMs: Date.now() - started,
+        };
+        continue;
+      }
+      const { name, result } = settled.value;
       outputTokens += result.outputTokens;
       content = { ...content, ...(result.parsed as Partial<SiteContent>) };
       elements = elementsFor(content as SiteContent);

@@ -8,6 +8,8 @@
  * What comes out is one flat component. That is deliberate: a generated file
  * you can read top to bottom and cut apart yourself beats a clever hierarchy
  * you have to reverse-engineer first.
+ *
+ * The bar this file is held to is that the two exports of one page agree. It has missed it twice. Generated quotation marks lived only in CSS and disappeared from the component while the HTML export kept them, and a per-text-node `.trim()` ate the space in `<span> · {role}</span>` so the byline exported as `Ada Lovelace· Founder` — correct in site.html, wrong in Site.tsx, and nothing compares the two. Both are pinned below.
  */
 
 const VOID_TAGS = new Set([
@@ -74,6 +76,16 @@ function styleObject(style: string): string {
   return hasCustomProperty ? `{${body} as CSSProperties}` : `{${body}}`;
 }
 
+/**
+ * An attribute value as JSX will actually read it.
+ *
+ * A JSX attribute string literal is taken verbatim — backslash escapes are not processed and an embedded `"` ends the string — so `JSON.stringify` alone emits `title="He said \"hi\""`, which does not parse. The brace form is a real JS expression where the escapes mean what they say. Bare strings are kept when they are safe so the common output stays readable. Nothing app/registry.tsx renders today reaches this (it emits only `class`, `style` and `key`), which is exactly why it went unnoticed; the first block to carry an `alt` or `aria-label` from LLM copy would have shipped a component that does not compile.
+ */
+function attributeValue(value: string): string {
+  const literal = JSON.stringify(value);
+  return /["\\\n]/.test(value) ? `{${literal}}` : literal;
+}
+
 function escapeText(text: string): string {
   // Braces are JSX syntax; everything else can sit in the tree as-is.
   return text.includes("{") || text.includes("}")
@@ -111,8 +123,12 @@ function serialize(node: Node, depth: number): string {
   const pad = "  ".repeat(depth);
 
   if (node.nodeType === Node.TEXT_NODE) {
-    const text = (node.textContent ?? "").replace(/\s+/g, " ").trim();
-    return text ? `${pad}${escapeText(text)}` : "";
+    const collapsed = (node.textContent ?? "").replace(/\s+/g, " ");
+    const text = collapsed.trim();
+    if (!text) return "";
+    // A leading or trailing space that survived the collapse is content, not formatting: this DOM was rendered by React, which already dropped JSX's own indentation, so the only way a space reaches an edge is because someone wrote it. Trimming it deleted the separator in the testimonial byline — `<span> · {role}</span>` — and the exported component read `Ada Lovelace· Founder` while the HTML export of the same page read `Ada Lovelace · Founder`. Bare JSX text cannot carry it back, since JSX discards whitespace adjacent to a newline, so the brace form does it instead.
+    if (collapsed !== text) return `${pad}{${JSON.stringify(collapsed)}}`;
+    return `${pad}${escapeText(text)}`;
   }
   if (node.nodeType !== Node.ELEMENT_NODE) return "";
 
@@ -138,11 +154,11 @@ function serialize(node: Node, depth: number): string {
         .replace(/\b(?:blk-in|quoted)\b/g, "")
         .replace(/\s+/g, " ")
         .trim();
-      if (cleaned) attributes.push(`className=${JSON.stringify(cleaned)}`);
+      if (cleaned) attributes.push(`className=${attributeValue(cleaned)}`);
       continue;
     }
     const name = PROP_NAMES[attr.name] ?? attr.name;
-    attributes.push(`${name}=${JSON.stringify(attr.value)}`);
+    attributes.push(`${name}=${attributeValue(attr.value)}`);
   }
 
   const attrText =
@@ -189,9 +205,11 @@ export function buildReactSource(root: Element, description: string): string {
 // Source request: ${description.replace(/\n/g, " ")}
 //
 // One flat component, no dependencies beyond React. Colours, fonts and radii
-// are CSS custom properties set on the outermost element, so retheming means
-// editing that one style object. Tailwind utility classes are preserved; drop
-// this into a project that has Tailwind, or replace the classes with your own.
+// are CSS custom properties, declared as an inline style on the one element
+// below whose style object sets --bg; retheming means editing that object, and
+// a block added outside that element inherits none of them. Tailwind utility
+// classes are preserved; drop this into a project that has Tailwind, or
+// replace the classes with your own.
 
 import type { CSSProperties } from "react";
 

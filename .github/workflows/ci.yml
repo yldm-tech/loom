@@ -19,6 +19,15 @@ jobs:
       # registry, and every block recipe must match its props. tsc enforces both.
       - run: npx tsc --noEmit
       - run: npm test
+      # The only part of loom nothing else exercises: scripts/mcp.mjs's own resolve hook and stdio framing. lib/mcp.test.ts calls handle() directly, so it would stay green through a transport that never starts — an agent registering `npm run --silent mcp` would be the one to find out. Two messages in one pipe is also the chunk boundary case the script's comment warns about. `npm run sources` is deliberately absent: it probes five third-party registries and belongs nowhere near a CI run.
+      - name: MCP server answers a handshake over stdio
+        run: |
+          printf '%s\n%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' | npm run --silent mcp > mcp-handshake.json
+          grep -q '"protocolVersion"' mcp-handshake.json
+          for tool in list_blocks list_themes theme_tokens list_component_sources sources_for_block; do
+            grep -q "\"$tool\"" mcp-handshake.json || { echo "MCP server did not advertise $tool"; exit 1; }
+          done
+          rm mcp-handshake.json
       - run: npm run build
         env:
           JEV_TOKEN: build-time-placeholder

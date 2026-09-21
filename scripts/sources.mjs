@@ -86,9 +86,10 @@ async function probeMcp(url) {
   const body = await listed.text();
   if (!listed.ok) return { status: listed.status, ok: false, note: "tools/list refused" };
 
-  // Streamable HTTP wraps the reply in server-sent events; the JSON-RPC message is the `data:` line.
-  const line = body.split("\n").find((l) => l.startsWith("data:"));
-  const tools = line ? JSON.parse(line.slice(5)).result?.tools : undefined;
+  // Streamable HTTP lets the server answer a POST with either content type, and the request above accepts both, so the reply has to be read by what came back rather than by what beUI happened to send the day this was written. An SSE reply carries the JSON-RPC message on the `data:` line; a plain JSON reply is the message. Reading only `data:` lines reports "no tool list" for a healthy server that listed 30 tools, and with ok:true the exit code stays 0, so the row reads healthy while losing the count this script exists for.
+  const sse = listed.headers.get("content-type")?.includes("event-stream") ?? false;
+  const payload = sse ? JSON.parse((body.split("\n").find((l) => l.startsWith("data:")) ?? "").slice(5) || "null") : JSON.parse(body);
+  const tools = payload?.result?.tools;
   return { status: listed.status, ok: true, note: Array.isArray(tools) ? `${tools.length} tools` : "no tool list" };
 }
 

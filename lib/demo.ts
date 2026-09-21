@@ -107,6 +107,8 @@ export async function* replay(
  * Portuguese users watching every suggestion in their own placeholder do
  * nothing. A test now feeds each locale's `editPlaceholder` suggestions back
  * through here, so the app cannot propose an edit it will not honour.
+ *
+ * That test measured the wrong page, though, and the same class of bug survived it: it handed every suggestion a synthetic block list containing every slot, while fixtures/zh.jsonl — the recording a Chinese-locale visitor actually gets — has no pricing block. So zh's own placeholder, 「不要定价了」, fell past every branch to the catch-all and the page did not move. The test now drives each locale's suggestions against the slots that locale's fixture really produces.
  */
 
 /** Written without diacritics, and compared against input stripped the same way. */
@@ -122,25 +124,65 @@ const EDIT_WORDS = {
   nav: ["nav", "导航", "내비", "ナビ"],
 } as const;
 
+/**
+ * Words that mean "take it away". The groups above name a block but not a direction, and presence decided it for them: the block is on the page so remove it, it is not so add it. That inverts the request when someone asks to drop a block their page never had, which is exactly what the zh placeholder suggests against the zh fixture. Direction is only consulted when the block is absent — when it is on the page presence still decides, so nothing here can turn a removal into something else.
+ *
+ * Kept to stems long enough to survive substring matching: "no" and "sin" occur inside ordinary words, so the removal phrasing each locale's placeholder actually uses is listed instead.
+ */
+const REMOVE_WORDS = [
+  "不要", "去掉", "删", "取消", "いらない", "削除", "빼", "삭제", "없애",
+  "drop", "remove", "delete", "without", "get rid",
+  "weglassen", "entfernen", "loschen", "ohne",
+  "enleve", "retire", "supprime", "sans",
+  "quita", "elimina", "tire", "remova", "retira",
+] as const;
+
 /** "enjoué" and "enjoue" are the same instruction; so are "preços" and "precos". */
 function fold(text: string): string {
   return text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 }
 
-export function replayEdit(prompt: string, present: string[], theme: string) {
+/** The same fields lib/edit.ts reports, declared rather than inferred: a branch that returns through a helper otherwise narrows the union and the callers lose `theme` and `slot`. */
+export type DemoEdit = {
+  action: string;
+  confidence: number;
+  targetConfidence: number;
+  slot?: string;
+  theme?: string;
+  variant?: string;
+  arbitrary?: boolean;
+  blockedBy?: string;
+};
+
+export function replayEdit(prompt: string, present: string[], theme: string): DemoEdit {
   const folded = fold(prompt);
   const match = (group: keyof typeof EDIT_WORDS) =>
     EDIT_WORDS[group].some((word) => folded.includes(fold(word)));
 
-  const removable = (slot: string) => present.includes(slot);
+  const onPage = (slot: string) => present.includes(slot);
+  const wantsRemoval = REMOVE_WORDS.some((word) => folded.includes(fold(word)));
 
-  if (match("pricing") && removable("pricing")) {
-    return { action: "remove", slot: "pricing", confidence: 1, targetConfidence: 1 };
+  // When the request names a block this page does not have, say so. Forcing it into the nearest edit the word list can perform would mean answering 「不要定价了」 by adding a pricing section, and the live path does not do that: Jev scores remove_target over the blocks that exist, lands under the floor and reports unclear. A demo that shows an outcome the real system would never produce is the thing this module exists not to do.
+  const notOnPage = (slot: string): DemoEdit => ({
+    action: "unclear",
+    confidence: 1,
+    targetConfidence: 0,
+    blockedBy: `this page has no ${slot} block, so there is nothing to change there`,
+  });
+  const addOrExplain = (slot: string): DemoEdit =>
+    wantsRemoval
+      ? notOnPage(slot)
+      : { action: "add", slot, confidence: 1, targetConfidence: 1 };
+
+  if (match("pricing")) {
+    return onPage("pricing")
+      ? { action: "remove", slot: "pricing", confidence: 1, targetConfidence: 1 }
+      : addOrExplain("pricing");
   }
   if (match("faq")) {
-    return removable("faq")
+    return onPage("faq")
       ? { action: "remove", slot: "faq", confidence: 1, targetConfidence: 1 }
-      : { action: "add", slot: "faq", confidence: 1, targetConfidence: 1 };
+      : addOrExplain("faq");
   }
   if (match("playful")) {
     return { action: "theme", theme: "coral", confidence: 1, targetConfidence: 1 };
@@ -152,6 +194,7 @@ export function replayEdit(prompt: string, present: string[], theme: string) {
     return { action: "theme", theme: "terminal", confidence: 1, targetConfidence: 0.9 };
   }
   if (match("nav")) {
+    if (!onPage("nav")) return notOnPage("nav");
     return {
       action: "restyle",
       slot: "nav",

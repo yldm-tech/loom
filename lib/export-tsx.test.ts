@@ -66,6 +66,34 @@ describe("buildReactSource", () => {
     expect(source).toContain('{"a {b} c"}');
   });
 
+  it("keeps a space that a text node carries at its edge, so the testimonial byline does not export as one run-on word", () => {
+    // app/registry.tsx renders `<span style={{ color: "var(--muted)" }}> · {item.role}</span>`; the leading space is the only separator between the name and the role. Trimming each text node on its own deleted it, and because JSX also discards whitespace next to a newline the two spans rendered as `Ada Lovelace· Founder` — correct in the HTML export of the same page, wrong here.
+    const source = buildReactSource(
+      element(`<p><span class="font-medium">Ada Lovelace</span><span> · Founder</span></p>`),
+      "t",
+    );
+    expect(source).toContain('{" · Founder"}');
+  });
+
+  it("still drops a text node that is only formatting, so blank lines in the markup do not become JSX children", () => {
+    const source = buildReactSource(element(`<div>\n  <span>a</span>\n</div>`), "t");
+    expect(source).not.toMatch(/\{" +"\}/);
+    expect(source).toContain("<span>");
+  });
+
+  it("puts an attribute value carrying a quote in braces, because a JSX string literal processes no escapes and the file would not parse", () => {
+    // JSX takes an attribute string literal verbatim: `title="He said \"hi\""` ends the string at the backslash-quote and the rest is a syntax error. Nothing app/registry.tsx renders today reaches this — it emits only class, style and key — so the first block to carry an `alt` or `aria-label` from LLM copy would have been the one to find out.
+    const source = buildReactSource(element(`<div title='He said "hi"'></div>`), "t");
+    expect(source).toContain('title={"He said \\"hi\\""}');
+    expect(source).not.toContain('title="He said');
+  });
+
+  it("leaves a quote-free attribute as a plain string, so the common output does not fill up with braces", () => {
+    const source = buildReactSource(element(`<div data-loom="site"><label for="x">Hi</label></div>`), "t");
+    expect(source).toContain('data-loom="site"');
+    expect(source).toContain('htmlFor="x"');
+  });
+
   it("produces a default-exported component and records the request", () => {
     const source = buildReactSource(element(`<div>hi</div>`), "我开了家咖啡店");
     expect(source).toContain("export default function Site()");

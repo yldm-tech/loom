@@ -332,12 +332,12 @@ A auditoria precisa do servidor no ar e de `npx playwright install chromium`, po
 
 
 ```bash
-npm test          # 347 deles, cerca de 1,5 s, sem rede
+npm test          # 362 deles, cerca de 1,5 s, sem rede
 ```
 
 Eles cobrem **as três regras retomadas do modelo**: a quantidade de diferenciais decide grade ou lista, a quantidade de planos decide cartão único ou comparativo, e a existência de uma captura de interface decide o layout do topo. Se alguma delas escorregar, a decisão volta em silêncio para um modelo que não consegue tomá-la — são as que não podem se mexer.
 
-Também são cobertos: a liberação por prontidão (um array vazio conta como ausente, não como pronto), a ordem de conclusão do `asSettled`, e as arestas do serializador de JSX — propriedades customizadas precisam de `as CSSProperties`, ponto e vírgula dentro de um gradiente não é separador, texto com chaves precisa ser envolvido, e nem a classe de animação `blk-in` nem o bloco `<style>` podem chegar à exportação. As superfícies voltadas a agentes recebem o mesmo tratamento: o `bundle.zip` é relido por um segundo leitor de zip, deliberadamente lento, escrito no próprio arquivo de teste e não pelo escritor que o produziu; o `/llms.txt` é analisado contra o formato do llmstxt.org e conferido linha a linha com as tabelas reais de blocos, temas e fontes; e o servidor MCP é conduzido pelo aperto de mão, por cada ferramenta que ele anuncia e por uma série de mensagens que chegam quebradas.
+Também são cobertos: o contrato do catálogo, agora imposto e não apenas declarado — um bloco cujas props não satisfazem o esquema que `lib/catalog.ts` define para ele guarda o seu lugar como esqueleto em vez de chegar a um renderizador que apenas faz cast; a liberação por prontidão (um array vazio conta como ausente, não como pronto), a ordem de conclusão do `asSettled`, e as arestas do serializador de JSX — propriedades customizadas precisam de `as CSSProperties`, ponto e vírgula dentro de um gradiente não é separador, texto com chaves precisa ser envolvido, e nem a classe de animação `blk-in` nem o bloco `<style>` podem chegar à exportação. As superfícies voltadas a agentes recebem o mesmo tratamento: o `bundle.zip` é relido por um segundo leitor de zip, deliberadamente lento, escrito no próprio arquivo de teste e não pelo escritor que o produziu; o `/llms.txt` é analisado contra o formato do llmstxt.org e conferido linha a linha com as tabelas reais de blocos, temas e fontes; e o servidor MCP é conduzido pelo aperto de mão, por cada ferramenta que ele anuncia e por uma série de mensagens que chegam quebradas.
 
 Mais invariantes estruturais: todo slot referenciado por um arquétipo precisa existir, obrigatórios e opcionais não podem se sobrepor, `SLOT_ORDER` precisa cobrir cada slot exatamente uma vez, e cada variante precisa declarar os campos de que depende.
 

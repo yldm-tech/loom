@@ -227,18 +227,20 @@ export const SLOT_ORDER: SlotKey[] = [
 /**
  * Layout rules code owns. These follow from the content itself, so asking the
  * model would only add a round trip and a low-confidence answer.
+ *
+ * The counts are taken with `Array.isArray` rather than by reading `.length`, and the parameter says `unknown` rather than `unknown[]` so that nothing else can be written. The fields arrive from `JSON.parse` of a model's reply, where the declared type is a hope rather than a fact: `"tiers": "免费"` is two characters long, and reading `.length` off it elected the multi-tier comparison layout for a business with no tiers at all — a rule that exists to count things silently counting the wrong thing. A field that is not an array is not an answer to "how many", so it counts as none and the rule does not fire.
  */
 export function layoutRules(content: {
-  features?: unknown[];
-  featuresDeep?: unknown[];
-  tiers?: unknown[];
-  visualKind?: string;
+  features?: unknown;
+  featuresDeep?: unknown;
+  tiers?: unknown;
+  visualKind?: unknown;
 }): { slot: SlotKey; id: string; because: string }[] {
   const rules: { slot: SlotKey; id: string; because: string }[] = [];
 
   // The split hero exists to hold a screenshot. Without one its right column is
   // an empty box, so the business's visual kind decides this, not taste.
-  if (content.visualKind) {
+  if (typeof content.visualKind === "string" && content.visualKind !== "") {
     const split = content.visualKind === "interface";
     rules.push({
       slot: "hero",
@@ -247,7 +249,7 @@ export function layoutRules(content: {
     });
   }
 
-  const featureCount = content.features?.length ?? 0;
+  const featureCount = Array.isArray(content.features) ? content.features.length : 0;
   if (featureCount > 0) {
     const grid = featureCount >= 5;
     rules.push({
@@ -257,7 +259,7 @@ export function layoutRules(content: {
     });
   }
 
-  const tierCount = content.tiers?.length ?? 0;
+  const tierCount = Array.isArray(content.tiers) ? content.tiers.length : 0;
   if (tierCount > 0) {
     const multi = tierCount >= 2;
     rules.push({

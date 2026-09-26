@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { composePlanned } from "./compose";
-import { catalog } from "./catalog";
+import { catalog, validateProps } from "./catalog";
 
 /**
  * The orchestration seam had no test, and three of the audit's findings lived in it: a copy chunk that failed both its attempts took the whole page down, a Jev round that rejected while the identity chunk was still in flight became an unhandled rejection, and an auto slot that layoutRules never spoke for stayed a skeleton through to `complete` while the run still reported `finish`.
@@ -95,6 +95,8 @@ async function run(options: {
   wants?: Record<string, number>;
   secondJevRound?: "ok" | "500";
   abortOn?: ChunkName;
+  /** Overrides the theme the Jev stand-in answers with, including with a key that is not one of the six. */
+  themeChoice?: string;
 } = {}) {
   const copy = { ...DEFAULT_COPY, ...options.copy };
   const wants = options.wants ?? {};
@@ -122,8 +124,9 @@ async function run(options: {
       const answers: Record<string, unknown> = {};
       for (const [key, question] of Object.entries(questions)) {
         const slot = key.startsWith("want_") ? key.slice("want_".length) : null;
+        const first = Object.keys(question.criteria ?? {})[0] ?? "";
         answers[key] = {
-          choice: Object.keys(question.criteria ?? {})[0] ?? "",
+          choice: key === "theme" && options.themeChoice !== undefined ? options.themeChoice : first,
           confidence: 0.9,
           noul: slot ? (wants[slot] ?? 0) : 0,
         };
@@ -286,8 +289,10 @@ describe("composePlanned", () => {
     expect(threw).toBeNull();
     expect(types("slot_hero")).toBe("HeroCentered");
     expect(types("slot_gallery")).toBe("Gallery");
-    // The wrong-typed field never reaches the renderer as itself.
-    expect(Array.isArray(spec!.elements.slot_pricing!.props!.tiers)).toBe(true);
+
+    // This assertion used to read `Array.isArray(props.tiers) === true`, which pinned the coercion in elementsFor rather than the outcome: the string was replaced with `[]`, and an empty array is a legal `tiers`, so the page drew a pricing block with a heading, a button and no prices and every check was happy. The block now holds its place as a skeleton, which is the same thing the page does for copy that never arrived — the honest description of a block whose copy came back unusable.
+    expect(types("slot_pricing")).toBe("Skeleton");
+    expect(spec!.elements.slot_pricing!.props!.tiers).toBeUndefined();
   });
 
   it("ends the run when the signal is aborted rather than reporting each remaining chunk as a block that produced no copy", async () => {
@@ -302,5 +307,37 @@ describe("composePlanned", () => {
     const { complete } = await run({ wants: LANDING_WANTS });
 
     expect(complete!.stopReason).toBe("finish");
+  });
+
+  it("emits a spec whose every element satisfies its own schema, whatever the model answered", async () => {
+    // The blanket version of the test above: no matter which chunk goes wrong, nothing that fails its contract reaches the spec.
+    for (const broken of [
+      { commerce: { ...COMMERCE, tiers: "免费" } },
+      { social: { ...SOCIAL, testimonials: [{ quote: "好", name: "林" }] } },
+      { place: { ...PLACE, contactLabels: { address: "地址" } } },
+    ]) {
+      const { spec } = await run({ copy: broken, wants: LANDING_WANTS });
+      for (const [name, element] of Object.entries(spec!.elements)) {
+        expect(
+          validateProps(element.type, element.props ?? {}),
+          `${name} (${element.type}) reached the spec with props its schema rejects`,
+        ).toBeNull();
+      }
+    }
+  });
+
+  it("falls back to a theme that exists when the judgement names one that does not, rather than rendering forest under another name", async () => {
+    // themeVars answers an unknown key with forest and says nothing, so an unrecognised choice used to render green while the decision log, the exported tokens and the theme picker all claimed something else.
+    const { events, spec } = await run({ wants: LANDING_WANTS, themeChoice: "midnight-neon" });
+
+    const plan = events.find((event) => event.type === "plan")!;
+    expect(plan.theme).toBe("forest");
+    expect((spec!.elements.root.props as { theme: string }).theme).toBe("forest");
+  });
+
+  it("uses the judgement's theme when it names a real one, so the narrowing is not just refusing everything", async () => {
+    const { events } = await run({ wants: LANDING_WANTS, themeChoice: "terminal" });
+
+    expect(events.find((event) => event.type === "plan")!.theme).toBe("terminal");
   });
 });

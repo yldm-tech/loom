@@ -23,6 +23,15 @@ describe("layoutRules", () => {
     expect(layoutRules({ features: [] })).toEqual([]);
   });
 
+  it("counts nothing from a field that is not a list, because a string's length is not an answer to how many", () => {
+    // `"tiers": "免费"` is what the model sends when asked to price a free project. It is valid JSON, so no retry fires; it is two characters long, so reading `.length` off it elected the three-column comparison layout for a business with no tiers at all. The rule exists to count things, and a value that cannot be counted is not a small count — it is no answer.
+    expect(layoutRules({ tiers: "免费" })).toEqual([]);
+    expect(layoutRules({ features: "当日烘焙、单一产区、自带杯" })).toEqual([]);
+    expect(layoutRules({ tiers: 3 })).toEqual([]);
+    expect(layoutRules({ tiers: { basic: {}, pro: {} } })).toEqual([]);
+    expect(layoutRules({ visualKind: 1 })).toEqual([]);
+  });
+
   it("shows one price card for a single way to buy, a comparison for several", () => {
     expect(layoutRules({ tiers: [{}] })[0]?.id).toBe("pricing_single");
     expect(layoutRules({ tiers: [{}, {}] })[0]?.id).toBe("pricing_multi");

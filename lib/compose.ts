@@ -9,8 +9,9 @@ import {
   type ArchetypeKey,
   type SlotKey,
 } from "@/lib/plan";
+import { validateProps } from "@/lib/catalog";
 import { elementsFor, type SiteContent } from "@/lib/content";
-import { THEME_CRITERIA } from "@/lib/themes";
+import { isThemeKey, THEME_CRITERIA } from "@/lib/themes";
 import {
   asSettled,
   contextFrom,
@@ -195,7 +196,9 @@ export async function* composePlanned(
     languageConfidence = first.answers.chineseVariant.confidence ?? null;
   }
   const identityPromise = generateIdentity(llmKey, prompt, signal, language);
-  const themeKey = first.answers.theme?.choice ?? "forest";
+  // A Choice answer is a key out of a closed set, so this ought to be a formality — but it is a string by the time it gets here, and `themeVars` answers an unrecognised one with forest and no complaint. That is the right behaviour for a total function and the wrong place to find out: the page would render green, the decision log would name a theme nobody could see, and the exported tokens would belong to a different palette than the label beside them. Narrowing it here means the rest of the system only ever handles a key that exists.
+  const answeredTheme = first.answers.theme?.choice;
+  const themeKey = isThemeKey(answeredTheme) ? answeredTheme : "forest";
   const themeConfidence = first.answers.theme?.confidence ?? null;
   const archetypeKey = (first.answers.archetype?.choice ?? "landing") as ArchetypeKey;
   const archetype = ARCHETYPES[archetypeKey] ?? ARCHETYPES.landing;
@@ -282,7 +285,10 @@ export async function* composePlanned(
       const element = id ? elements[id] : undefined;
       // The frame is drawn from the plan alone; a block that has no copy yet
       // holds its place with a skeleton of the same shape.
-      const ready = element && isReady(id!, content);
+      //
+      // `isReady` asks whether the fields are there and carry something; it does not ask whether they are the right kind of thing, and it cannot, because the answer to that lives in the catalog's schemas rather than in a list of field names. A model that answers `"tiers": "免费"` instead of an array satisfies it — the string is present and not blank — and the Pricing block then reached the renderer, where `props.tiers.map` is a cast rather than a check. So the block's own contract is consulted here too, and a block whose props do not satisfy it holds its place as a skeleton exactly like one whose copy has not arrived. Degrading to the placeholder that already exists beats both alternatives: rendering a block that is wrong, and failing a page over one block.
+      const problem = element ? validateProps(element.type, element.props ?? {}) : null;
+      const ready = Boolean(element) && isReady(id!, content) && !problem;
       specElements[key] = ready
         ? { ...element, children: [] }
         : { type: "Skeleton", props: { kind: SKELETON_KIND[slot] ?? "section" }, children: [] };

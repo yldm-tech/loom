@@ -122,6 +122,15 @@ export const THEME_CRITERIA = Object.fromEntries(
   Object.entries(THEMES).map(([key, theme]) => [key, theme.description]),
 );
 
+/**
+ * Whether a string is one of the six, narrowing it where model output enters the system.
+ *
+ * `themeVars` below answers anything it does not recognise with forest rather than throwing, which is what its callers need — the renderer has to draw something, and the MCP tool wants the fallback so it can tell an agent which palette it actually got. The cost of that is silence: a typo or a hallucinated key renders green everywhere with nothing reported. So the check lives here and is applied at the boundary the value crosses, and the total function stays total.
+ */
+export function isThemeKey(value: unknown): value is ThemeKey {
+  return typeof value === "string" && Object.hasOwn(THEMES, value);
+}
+
 /** Inline CSS variables, so the registry never hardcodes a palette. */
 export function themeVars(key: string): Record<string, string> {
   const theme = THEMES[key] ?? THEMES.forest!;

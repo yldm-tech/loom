@@ -9,6 +9,8 @@
   <a href="https://github.com/yldm-tech/loom/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/yldm-tech/loom?style=flat-square"></a>
   <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D24-brightgreen?style=flat-square">
   <a href="https://typesafe.ai"><img alt="Powered by Jev" src="https://img.shields.io/badge/judgement-Jev-5b8def?style=flat-square"></a>
+  <a href="https://x.com/suzukaze_haduki"><img alt="X" src="https://img.shields.io/badge/X-%40suzukaze__haduki-000000?logo=x&logoColor=white"></a>
+  <a href="https://github.com/sponsors/houko"><img alt="GitHub Sponsors" src="https://img.shields.io/badge/GitHub%20Sponsors-ea4aaa?logo=githubsponsors&logoColor=white"></a>
 </p>
 
 
